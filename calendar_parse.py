@@ -7,7 +7,9 @@ import re
 import csv
 from bs4 import BeautifulSoup
 
-ROOT_URL = "https://www.vermontjudiciary.org/court-calendars"
+import src.config.config as courtbot_config
+
+ROOT_URL = courtbot_config.get_config_field("calendar_root_url")
 
 COUNTY_CODE_MAP = dict(
     an="addison",
@@ -16,7 +18,7 @@ COUNTY_CODE_MAP = dict(
     cn="chittenden",
     ex="essex",
     fr="franklin",
-    gi="grand isle",
+    gi="grand_isle",
     le="lamoille",
     oe="orange",
     os="orleans",
@@ -26,7 +28,7 @@ COUNTY_CODE_MAP = dict(
     wr="windsor",
 )
 
-DIV_CODE_MAP = dict(
+SUBDIV_CODE_MAP = dict(
     c="enforcement action",
     cr="criminal",
     cv="civil",
@@ -40,6 +42,14 @@ DIV_CODE_MAP = dict(
     sa="TODO",  # TODO
     cm="civil miscellaneous",
 )
+
+DIVISIONS = [
+    "criminal",
+    "civil",
+    "family",
+    "probate",
+    "environmental",
+]
 
 
 def get_court_calendar_urls(root_url):
@@ -58,8 +68,10 @@ def get_court_calendar_urls(root_url):
     # 2) remove itmes from list that don't start
     # "https://www.vermontjudiciary.org/courts/court-calendars"
     # TODO: This leaves out probate courts! Figure out how to incorporate these
-    calendar_urls = re.findall(r'(https://www.vermontjudiciary.org/courts/court-calendars.+?\.htm)', full_link_string)
-
+    calendar_urls = re.findall(
+        r'(https://www.vermontjudiciary.org/courts/court-calendars.+?\.htm)',
+        full_link_string)
+    # calendar_urls = re.findall(r'(' + ROOT_URL + r'.+?\.htm)', full_link_string)
     # 3) scrape HTML title tags from each calendar
     titles = []
     scraped_urls = []
@@ -80,12 +92,12 @@ def get_court_calendar_urls(root_url):
     return title_url_list
 
 
-def parse_county_div_code(code):
+def parse_county_subdiv_code(code):
     county_code = code[:2].lower()
-    div_code = code[2:].lower().split('/')[0]
+    subdiv_code = code[2:].lower().split('/')[0]
     county = COUNTY_CODE_MAP[county_code]
-    div = DIV_CODE_MAP[div_code]
-    return county, div
+    subdiv = SUBDIV_CODE_MAP[subdiv_code]
+    return county, subdiv
 
 
 def parse_event_block(event_block):
@@ -131,13 +143,13 @@ def parse_event_block(event_block):
             category = group_dict['category']
 
         if day_of_week and day and month and time and am_pm and court_room and category and docket:
-            county, division = parse_county_div_code(category)
+            county, subdivision = parse_county_subdiv_code(category)
             if docket not in dockets:
                 events.append(
                     dict(
                         docket=docket,
                         county=county,
-                        division=division,
+                        subdivision=subdivision,
                         court_room=court_room,
                         hearing_type=hearing_type,
                         day_of_week=day_of_week,
@@ -160,7 +172,7 @@ def parse_address(calendar):
         street = address_text.split("·")[0]
         city_state_zip = address_text.split("·")[1]
         city = city_state_zip.split(",")[0]
-        zip_code = city_state_zip[-6:]
+        zip_code = city_state_zip[-5:]
         print(zip_code)
     else:
         street = ""
@@ -175,24 +187,27 @@ def parse_address(calendar):
     return address
 
 
-def parse_court_type(court_name):
-    county_division = re.split(r"\sfor\s+", court_name)[1]
-    if len(re.split(r"\s+", county_division)) == 3:
-        court_type = re.split(r"\s+", county_division)[1] + " " + re.split(r"\s+", county_division)[2]
+def parse_division(court_name):
+    county_division = re.split(r"\sfor\s+", court_name)[1].lower()
+    divisions = "|".join(DIVISIONS)
+    division_regex = r'.*(?P<division>(' + divisions + ')).*'
+    division = re.match(division_regex, county_division)
+    if division:
+        division = division.groupdict()['division']
     else:
-        court_type = county_division
-    return court_type
+        division = county_division
+    return division
 
 
 def parse_court_calendar(calendar, court_name):
     events = []
     address = parse_address(calendar)
-    court_type = parse_court_type(court_name)
+    division = parse_division(court_name)
     event_blocks = calendar.html.find('pre')
     for event_block in event_blocks:
         events = events + parse_event_block(event_block)
     [event.update(address) for event in events]
-    [event.update(dict(court_type=court_type)) for event in events]
+    [event.update(dict(division=division)) for event in events]
     return events
 
 
