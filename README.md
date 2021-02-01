@@ -1,6 +1,6 @@
 # courtbot-vt
 Python code to scrape [Vermont court calendars](https://www.vermontjudiciary.org/court-calendars) and populate our
-cache of [calendar data](https://www.vermontjudiciary.org/court-calendars)
+cache of [calendar data](https://github.com/codeforbtv/court-calendars)
 
 ## Setup and Run
 1. Clone the courtbot-vt repo:
