@@ -51,6 +51,8 @@ def write_events(event_csv, write_dir, local_calendar_repo, repo_name, github_or
 
 
 def push_events(local_calendar_repo, events_dir):
+    # TODO: accept github branch as an argument and potentially change to correct branch before commit/push
+
     os.chdir(local_calendar_repo)
     cmd.run("git add " + events_dir + "/", check=True, shell=True)
     commit_message = "'Adding newest court event json files'"
@@ -59,6 +61,8 @@ def push_events(local_calendar_repo, events_dir):
 
 
 def push_lookup_table(local_calendar_repo, lookup_table_file):
+    # TODO: accept github branch as an argument and potentially change to correct branch before commit/push
+
     os.chdir(local_calendar_repo)
     cmd.run("git add " + lookup_table_file, check=True, shell=True)
     commit_message = "'Rewriting lookup table'"

@@ -46,3 +46,6 @@ def get_config_field(key):
     return config[key]
 
 
+if __name__ == "__main__":
+    generate_default_config()
+
