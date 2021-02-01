@@ -1,15 +1,10 @@
 import requests
 import requests_html
 import datetime
-import sys
 import os
 import re
 import csv
 from bs4 import BeautifulSoup
-
-import src.config.config as courtbot_config
-
-ROOT_URL = courtbot_config.get_config_field("calendar_root_url")
 
 COUNTY_CODE_MAP = dict(
     an="addison",
@@ -211,11 +206,10 @@ def parse_court_calendar(calendar, court_name):
     return events
 
 
-def main(argv):
+def parse_all(calendar_root_url, write_dir):
 
-    write_dir = argv[0]
     date = datetime.date.today().strftime("%Y-%m-%d")
-    court_cals = get_court_calendar_urls(ROOT_URL)
+    court_cals = get_court_calendar_urls(calendar_root_url)
     all_court_events = []
     for court_cal in court_cals:
         session = requests_html.HTMLSession()
@@ -242,7 +236,5 @@ def main(argv):
         dict_writer.writeheader()
         dict_writer.writerows(all_court_events)
 
+    return write_file
 
-if __name__ == "__main__":
-    main(sys.argv[1:])
-    # main(["/tmp/output.csv"])
