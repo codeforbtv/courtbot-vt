@@ -39,7 +39,7 @@ python3 main.py
 ```
 9. Deactivate the virtual env
 ```
-deavtivate
+deactivate
 ```
 
 
