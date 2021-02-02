@@ -22,7 +22,7 @@ def generate_default_config():
     config = dict(
         calendar_root_url="https://www.vermontjudiciary.org/court-calendars",
         calendar_repo="court-calendars",
-        github_branch="main",
+        github_branch="dev",
         github_organization="codeforbtv",
         github_link_stub="https://raw.githubusercontent.com",
     )
