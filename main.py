@@ -38,8 +38,8 @@ def main():
                                              github_org, link_stub)
     print("Finished writing json files for parsed court events\n")
 
-    event_writer.push_events(local_calendar_repo, today)
-    event_writer.push_lookup_table(local_calendar_repo, os.path.basename(lookup_table))
+    event_writer.commit_push(local_calendar_repo, today + "/", "Adding newest court event json files")
+    event_writer.commit_push(local_calendar_repo, os.path.basename(lookup_table),  "Rewriting lookup table")
 
 
 if __name__ == "__main__":

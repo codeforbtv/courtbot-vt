@@ -80,47 +80,26 @@ def write_events(event_csv, write_dir, local_calendar_repo, repo_name="court-cal
     return lookup_table_name
 
 
-def push_events(local_calendar_repo, events_dir):
-    """
-    Commit and push a folder containing new county-division-docket.json files
-    :param local_calendar_repo: string indicating local path to court calendar repo
-    :param events_dir: string indicating path (relative to local_calendar_repo)
-    :return:
+def commit_push(repo_directory, add_path, message):
     """
 
+    :param repo_directory: string indicating local path to court calendar repo
+    :param add_path: string indicating path (relative to repo_directory) of file(s) to add, commit, and push
+    :param message: string commit message
+    :return: True if successful, False if errors were encountered
+    """
     # TODO: accept github branch as an argument and potentially change to correct branch before commit/push
 
-    os.chdir(local_calendar_repo)
-    cmd.run("git add " + events_dir + "/", check=True, shell=True)
-    commit_message = "'Adding newest court event json files'"
+    os.chdir(repo_directory)
+    cmd.run("git add" + add_path, check=True, shell=True)
     try:
-        cmd.run("git commit -m " + commit_message, check=True, shell=True)
+        cmd.run("git commit -m '" + message + "'", check=True, shell=True)
         cmd.run("git push", check=True, shell=True)
         return True
     except cmd.CalledProcessError as e:
-        print("Failed to commit and push events json files with the following error: \n" + str(e))
+        print("Failed to commit and push with the following error: \n" + str(e))
         return False
 
 
-def push_lookup_table(local_calendar_repo, lookup_table_file):
-    """
-    Commit and push a the new lookup csv for matching county-division-docket to a github link
-    :param local_calendar_repo: string indicating local path to court calendar repo
-    :param lookup_table_file: string indicating local path (relative to local_calendar_repo) to new lookup csv
-    :return:
-    """
-
-    # TODO: accept github branch as an argument and potentially change to correct branch before commit/push
-
-    os.chdir(local_calendar_repo)
-    cmd.run("git add " + lookup_table_file, check=True, shell=True)
-    commit_message = "'Rewriting lookup table'"
-    try:
-        cmd.run("git commit -m " + commit_message, check=True, shell=True)
-        cmd.run("git push", check=True, shell=True)
-        return True
-    except cmd.CalledProcessError as e:
-        print("Failed to commit and push lookup table with the following error: \n" + str(e))
-        return False
 
 
