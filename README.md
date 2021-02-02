@@ -3,6 +3,7 @@ Python code to scrape [Vermont court calendars](https://www.vermontjudiciary.org
 cache of [calendar data](https://github.com/codeforbtv/court-calendars)
 
 Project Lead: Stephen Chisa
+
 Tech Lead: Lucas Johnson
 
 ## Setup and Run
