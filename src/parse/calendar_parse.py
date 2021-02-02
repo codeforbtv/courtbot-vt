@@ -1,3 +1,7 @@
+"""
+Code for parsing event information from Vermont Judiciary block text html calendars and writing event info to a csv.
+"""
+
 import requests
 import requests_html
 import datetime
@@ -48,6 +52,15 @@ DIVISIONS = [
 
 
 def get_court_calendar_urls(root_url):
+    """
+    Collect urls for individual court calendars from the Vermont Judiciary site
+    :param root_url: Url to Vermont Judiciary site where all of the individual court calendars (urls) can be found.
+    :return: A list of dicts containing urls to court calendars and court names:
+    {
+        "url": "https://www.vermontjudiciary.org/courts/court-calendars/cas_cal.htm",
+        "title": "Court Calendar for Caledonia Civil Division"
+    }
+    """
     print("Collecting court calendar urls.\n")
 
     # 1) Scrape all URLS
@@ -88,6 +101,11 @@ def get_court_calendar_urls(root_url):
 
 
 def parse_county_subdiv_code(code):
+    """
+    Given a 4 letter code, use SUBDIV_CODE_MAP, and COUNTY_CODE_MAP to produce subdivision and county fields
+    :param code: String of length 4. E.g. "cncr"
+    :return: A tuple containing county, subvidision. E.g. (following the example above) "chittenden", "criminal"
+    """
     county_code = code[:2].lower()
     subdiv_code = code[2:].lower().split('/')[0]
     county = COUNTY_CODE_MAP[county_code]
@@ -96,6 +114,33 @@ def parse_county_subdiv_code(code):
 
 
 def parse_event_block(event_block):
+    """
+    Extract event information from block of formatted text
+    :param event_block: A block of formatted text found within a <pre> tag in a vermont court calendar. E.g.:
+
+    Friday,    Feb. 19                               Corporation Incorporated, LLC vs. Doe
+    9:15 AM                                          114-8-20 Cacv/Civil
+    Caledonia Courtroom 1                            Bench Trial
+                                                     Plaintiff(s)
+                                                       PCA Acquisitions V, LLC  (Jane Doe)
+                                                     Defendant(s)
+                                                       John Doe
+
+    :return: A simple dictionary structured as follows:
+
+    {
+        "docket": "142-8-20",
+        "county": "chittenden",
+        subdivision: "criminal",
+        court_room: "courtroom 1",
+        hearing_type: "bench trial",
+        day_of_week: "monday",
+        day: "19",
+        month: "february",
+        time: "10:30",
+        am_pm: "AM"
+    }
+    """
     event_text = event_block.full_text
     date_regex = r'(?P<day_of_week>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+' \
                  r'(?P<month>[a-zA-Z]{3})\.\s+(?P<day>[0-9]{1,2})'
@@ -160,6 +205,12 @@ def parse_event_block(event_block):
 
 
 def parse_address(calendar):
+    """
+    Parse the address fields (street, city, zip) from a court calendar html response
+    :param calendar: html response for an individual court calendar
+    :return: A dictionary structured as follows:
+    {"street": "<street name and number>", "city": "<name of city>", "zip_code": "<5 digit zip>"}
+    """
     first_center_tag = calendar.html.find("center")[0]
     if len(first_center_tag.text.split('\n')) >= 3:
         address_text = first_center_tag.text.split('\n')[2]
@@ -168,7 +219,6 @@ def parse_address(calendar):
         city_state_zip = address_text.split("·")[1]
         city = city_state_zip.split(",")[0]
         zip_code = city_state_zip[-5:]
-        print(zip_code)
     else:
         street = ""
         city = ""
@@ -183,6 +233,11 @@ def parse_address(calendar):
 
 
 def parse_division(court_name):
+    """
+    Given a court name, extract the division (one of DIVISIONS)
+    :param court_name: the name of the court. e.g. "Court Calendar for Caledonia Civil Division"
+    :return: A string
+    """
     county_division = re.split(r"\sfor\s+", court_name)[1].lower()
     divisions = "|".join(DIVISIONS)
     division_regex = r'.*(?P<division>(' + divisions + ')).*'
@@ -195,6 +250,13 @@ def parse_division(court_name):
 
 
 def parse_court_calendar(calendar, court_name):
+    """
+    Parse the html response for an individual court calendar into a list dicts where each dict represents an
+    event.
+    :param calendar: html response for an individual court calendar
+    :param court_name: the name of the court. e.g. "Court Calendar for Caledonia Civil Division"
+    :return: A list of dicts
+    """
     events = []
     address = parse_address(calendar)
     division = parse_division(court_name)
@@ -207,6 +269,15 @@ def parse_court_calendar(calendar, court_name):
 
 
 def parse_all(calendar_root_url, write_dir):
+    """
+    Collect all court calendar pages at calendar_root_url, parse specific events for each court calendar, and write
+    all parsed events to a csv.
+    :param calendar_root_url: string url where all individual court calendar html pages can be found
+    :param write_dir: string indicating path to local directory where parsed event csv will be written
+    :return: string indicating path to parsed event csv
+    """
+    if not os.path.isdir(write_dir):
+        os.mkdir(write_dir)
 
     date = datetime.date.today().strftime("%Y-%m-%d")
     court_cals = get_court_calendar_urls(calendar_root_url)

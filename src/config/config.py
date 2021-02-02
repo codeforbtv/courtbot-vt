@@ -1,12 +1,24 @@
+"""
+Provides functions to lookup fields in the config. Also serves as a script for generating a default configuration file
+for a new setup/install.
+
+Usage (creates and writes a default config file at ~/.courtbot-vt/config.yaml):
+python3 config.py
+"""
+
 import os
 import yaml
-# Write generic config file
 
 CONFIG_DIR = os.path.expanduser("~/.courtbot-vt")
 CONFIG_FILE = "config.yaml"
 
 
 def generate_default_config():
+    """
+    Generate a default yaml config file. Should be run once for a new setup/install or when additional config fields
+    are added
+    :return:
+    """
     config = dict(
         calendar_root_url="https://www.vermontjudiciary.org/court-calendars",
         calendar_repo="court-calendars",
@@ -35,6 +47,10 @@ def generate_default_config():
 
 # Get config file contents
 def read_config():
+    """
+    Read the user specific config file from disk and return the contents as a simple dictionary
+    :return: A dictionary containing config fields and values
+    """
     with open(os.path.join(CONFIG_DIR, CONFIG_FILE), 'r') as config_file:
         config = yaml.load(config_file, Loader=yaml.FullLoader)
 
@@ -42,6 +58,11 @@ def read_config():
 
 
 def get_config_field(key):
+    """
+    Retrieve a value from the config by looking up '`ey`
+    :param key: A string to lookup a value in the config
+    :return: A value from the config
+    """
     config = read_config()
     return config[key]
 
