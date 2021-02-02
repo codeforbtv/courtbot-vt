@@ -91,7 +91,7 @@ def commit_push(repo_directory, add_path, message):
     # TODO: accept github branch as an argument and potentially change to correct branch before commit/push
 
     os.chdir(repo_directory)
-    cmd.run("git add" + add_path, check=True, shell=True)
+    cmd.run("git add " + add_path, check=True, shell=True)
     try:
         cmd.run("git commit -m '" + message + "'", check=True, shell=True)
         cmd.run("git push", check=True, shell=True)
