@@ -78,4 +78,3 @@ def commit_push(repo_directory, add_path, message):
     except cmd.CalledProcessError as e:
         print("Failed to commit and push with the following error: \n" + str(e))
         return False
-

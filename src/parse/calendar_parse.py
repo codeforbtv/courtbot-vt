@@ -308,4 +308,3 @@ def parse_all(calendar_root_url, write_dir):
         dict_writer.writerows(all_court_events)
 
     return write_file
-

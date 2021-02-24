@@ -5,8 +5,6 @@ Usage:
 python3 main.py
 
 """
-import os
-import datetime
 import src.parse.calendar_parse as parser
 import src.github_database.write_events as event_writer
 import src.config.config as courtbot_config
@@ -22,7 +20,6 @@ def main():
     """
     calendar_root_url = courtbot_config.get_config_field("calendar_root_url")
     local_calendar_repo = courtbot_config.get_config_field("local_calendar_repo_path")
-    today = datetime.date.today().strftime("%Y-%m-%d")
 
     print("Parsing all court calendars found at " + calendar_root_url + "\n")
     events_csv = parser.parse_all(calendar_root_url, local_calendar_repo)
@@ -37,5 +34,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
