@@ -16,7 +16,6 @@ def main():
     """
     - Parse court calendars
     - Write json files with court events for each county-division-docket
-    - Write a lookup csv
     - Commit & push new json files and lookup csv
 
     :return:
