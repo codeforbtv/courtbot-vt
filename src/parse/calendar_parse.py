@@ -301,7 +301,7 @@ def parse_all(calendar_root_url, write_dir):
             print("Done parsing '" + court_name + "' at '" + court_url + "'.\n")
 
     keys = all_court_events[0].keys()
-    write_file = os.path.join(write_dir,  'court_events_' + date + ".csv")
+    write_file = os.path.join(write_dir,  'court_events.csv')
     with open(write_file, 'w') as wf:
         dict_writer = csv.DictWriter(wf, keys)
         dict_writer.writeheader()
