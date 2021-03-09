@@ -279,7 +279,6 @@ def parse_all(calendar_root_url, write_dir):
     if not os.path.isdir(write_dir):
         os.mkdir(write_dir)
 
-    date = datetime.date.today().strftime("%Y-%m-%d")
     court_cals = get_court_calendar_urls(calendar_root_url)
     all_court_events = []
     for court_cal in court_cals:
