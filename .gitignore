@@ -130,3 +130,6 @@ dmypy.json
 
 # Pycharm stuff
 .idea/
+
+# courtbot stuff
+.main.sh
