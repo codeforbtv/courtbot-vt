@@ -9,11 +9,11 @@ Tech Lead: Lucas Johnson
 ## Setup and Run
 1. Clone the courtbot-vt repo:
 ```
-git clone git@github.com:codeforbtv/courtbot-vt.git
+git clone https://github.com/codeforbtv/courtbot-vt.git
 ```
 2. Clone the court-calendars repo:
 ```
-git clone git@github.com:codeforbtv/court-calendars.git
+https://github.com/codeforbtv/court-calendars.git
 ```
 3. In the courtbot-vt folder create a virtual environment and activate it:
 ```
