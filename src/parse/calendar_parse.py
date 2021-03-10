@@ -279,7 +279,6 @@ def parse_all(calendar_root_url, write_dir):
     if not os.path.isdir(write_dir):
         os.mkdir(write_dir)
 
-    date = datetime.date.today().strftime("%Y-%m-%d")
     court_cals = get_court_calendar_urls(calendar_root_url)
     all_court_events = []
     for court_cal in court_cals:
@@ -301,11 +300,10 @@ def parse_all(calendar_root_url, write_dir):
             print("Done parsing '" + court_name + "' at '" + court_url + "'.\n")
 
     keys = all_court_events[0].keys()
-    write_file = os.path.join(write_dir,  'court_events_' + date + ".csv")
+    write_file = os.path.join(write_dir,  'court_events.csv')
     with open(write_file, 'w') as wf:
         dict_writer = csv.DictWriter(wf, keys)
         dict_writer.writeheader()
         dict_writer.writerows(all_court_events)
 
     return write_file
-
