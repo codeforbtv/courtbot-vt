@@ -9,7 +9,7 @@ python3 config.py
 import os
 import yaml
 
-CONFIG_DIR = os.path.expanduser("~/.courtbot-vt")
+CONFIG_DIR = os.path.expanduser(os.path.join("~", ".courtbot-vt"))
 CONFIG_FILE = "config.yaml"
 
 
