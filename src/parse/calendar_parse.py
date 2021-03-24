@@ -4,7 +4,6 @@ Code for parsing event information from Vermont Judiciary block text html calend
 
 import requests
 import requests_html
-import datetime
 import os
 import re
 import csv
@@ -106,17 +105,87 @@ def parse_county_subdiv_code(code):
     :param code: String of length 4. E.g. "cncr"
     :return: A tuple containing county, subvidision. E.g. (following the example above) "chittenden", "criminal"
     """
-    county_code = code[:2].lower()
-    subdiv_code = code[2:].lower().split('/')[0]
-    county = COUNTY_CODE_MAP[county_code]
-    subdiv = SUBDIV_CODE_MAP[subdiv_code]
-    return county, subdiv
+    if code is None:
+        return "", ""
+    else:
+        county_code = code[:2].lower()
+        subdiv_code = code[2:].lower().split('/')[0]
+        county = COUNTY_CODE_MAP[county_code]
+        subdiv = SUBDIV_CODE_MAP[subdiv_code]
+        return county.strip().lower(), subdiv.strip().lower()
 
 
-def parse_event_block(event_block):
+def parse_date(line):
+    """
+
+    :param line:
+    :return:
+    """
+    date_regex = r'(?P<day_of_week>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+' \
+                 r'(?P<month>[a-zA-Z]{3})\.\s+(?P<day>[0-9]{1,2})'
+
+    if re.match(date_regex, line):
+        group_dict = re.match(date_regex, line).groupdict()
+        day_of_week = group_dict['day_of_week']
+        day = group_dict['day']
+        month = group_dict['month']
+        return day_of_week.strip().lower(), day.strip().lower(), month.strip().lower()
+    else:
+        return "", "", None
+
+
+def parse_time(line):
+    """
+
+    :param line:
+    :return:
+    """
+    time_regex = r'(?P<time>[0-9]{1,2}:[0-9]{2})\s+(?P<am_pm>AM|PM)'
+    if re.match(time_regex, line):
+        group_dict = re.match(time_regex, line).groupdict()
+        time = group_dict['time']
+        am_pm = group_dict['am_pm']
+        return time.strip().lower(), am_pm.strip().lower()
+    else:
+        return "", ""
+
+
+def parse_court_details(line):
+    """
+
+    :param line:
+    :return:
+    """
+    court_room_hearing_type_regex = r'(?P<court_room>^.*?(?=\s{2}))\s+(?P<hearing_type>.*$)'
+    if re.match(court_room_hearing_type_regex, line):
+        group_dict = re.match(court_room_hearing_type_regex, line).groupdict()
+        court_room = group_dict['court_room']
+        hearing_type = group_dict['hearing_type']
+        return court_room.strip().lower(), hearing_type.strip().lower()
+    else:
+        return "", ""
+
+
+def parse_docket_category(line):
+    """
+
+    :param line:
+    :return:
+    """
+    docket_regex = r'(?P<docket>[0-9]{2,4}-[0-9]{1,2}-[0-9]{2})\s+(?P<category>.*$)'
+    if re.search(docket_regex, line):
+        group_dict = re.search(docket_regex, line).groupdict()
+        docket = group_dict['docket']
+        category = group_dict['category']
+        return docket.strip().lower(), category.strip().lower()
+    else:
+        return "", ""
+
+
+def parse_event_block(event_text):
     """
     Extract event information from block of formatted text
-    :param event_block: A block of formatted text found within a <pre> tag in a vermont court calendar. E.g.:
+    :param event_text: A block of formatted text found within a <pre> tag in a vermont court calendar. E.g.:
 
     Friday,    Feb. 19                               Corporation Incorporated, LLC vs. Doe
     9:15 AM                                          114-8-20 Cacv/Civil
@@ -141,79 +210,78 @@ def parse_event_block(event_block):
         am_pm: "AM"
     }
     """
-    event_text = event_block.full_text
-    date_regex = r'(?P<day_of_week>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+' \
-                 r'(?P<month>[a-zA-Z]{3})\.\s+(?P<day>[0-9]{1,2})'
-    time_regex = r'(?P<time>[0-9]{1,2}:[0-9]{2})\s+(?P<am_pm>AM|PM)'
-    docket_regex = r'(?P<docket>[0-9]{2,4}-[0-9]{1,2}-[0-9]{2})\s+(?P<category>.*$)'
-    # court_room_regex = r'(?P<court_room>^.*?(?=\s{2}))'
-    court_room_hearing_type_regex = r'(?P<court_room>^.*?(?=\s{2}))\s+(?P<hearing_type>.*$)'
     events = []
-    dockets = set()
-
+    # dockets = set()
     lines = event_text.split('\n')
     court_room_flag = False
 
     day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
-
     for line in lines:
         if not line:
             day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
-        if re.match(date_regex, line):
-            group_dict = re.match(date_regex, line).groupdict()
-            day_of_week = group_dict['day_of_week']
-            day = group_dict['day']
-            month = group_dict['month']
+            continue
+        if not day_of_week and not day and not month:
+            day_of_week, day, month = parse_date(line)
 
-        if re.match(time_regex, line):
-            group_dict = re.match(time_regex, line).groupdict()
-            time = group_dict['time']
-            am_pm = group_dict['am_pm']
-            court_room_flag = True
+        if not time and not am_pm:
+            time, am_pm = parse_time(line)
+            if time and am_pm:
+                court_room_flag = True
+        elif time and am_pm and court_room_flag:
+            court_room, hearing_type = parse_court_details(line)
+            if court_room and hearing_type:
+                court_room_flag = False
 
-        elif re.match(court_room_hearing_type_regex, line) and court_room_flag:
-            group_dict = re.match(court_room_hearing_type_regex, line).groupdict()
-            court_room = group_dict['court_room']
-            hearing_type = group_dict['hearing_type']
-            court_room_flag = False
-
-        if re.search(docket_regex, line):
-            group_dict = re.search(docket_regex, line).groupdict()
-            docket = group_dict['docket']
-            category = group_dict['category']
+        if not docket and not category:
+            docket, category = parse_docket_category(line)
 
         if day_of_week and day and month and time and am_pm and court_room and category and docket:
             county, subdivision = parse_county_subdiv_code(category)
-            if docket not in dockets:
-                events.append(
-                    dict(
-                        docket=docket,
-                        county=county,
-                        subdivision=subdivision,
-                        court_room=court_room,
-                        hearing_type=hearing_type,
-                        day_of_week=day_of_week,
-                        day=day,
-                        month=month,
-                        time=time,
-                        am_pm=am_pm
-                    )
+            # if docket not in dockets:
+            #     events.append(
+            #         dict(
+            #             docket=docket,
+            #             county=county,
+            #             subdivision=subdivision,
+            #             court_room=court_room,
+            #             hearing_type=hearing_type,
+            #             day_of_week=day_of_week,
+            #             day=day,
+            #             month=month,
+            #             time=time,
+            #             am_pm=am_pm
+            #         )
+            #     )
+            #     dockets.add(docket)
+            events.append(
+                dict(
+                    docket=docket,
+                    county=county,
+                    subdivision=subdivision,
+                    court_room=court_room,
+                    hearing_type=hearing_type,
+                    day_of_week=day_of_week,
+                    day=day,
+                    month=month,
+                    time=time,
+                    am_pm=am_pm
                 )
-                dockets.add(docket)
+            )
+            day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
 
     return events
 
 
-def parse_address(calendar):
+def parse_address(address_text):
     """
     Parse the address fields (street, city, zip) from a court calendar html response
-    :param calendar: html response for an individual court calendar
+    :param address_text: text containing address information
     :return: A dictionary structured as follows:
     {"street": "<street name and number>", "city": "<name of city>", "zip_code": "<5 digit zip>"}
     """
-    first_center_tag = calendar.html.find("center")[0]
-    if len(first_center_tag.text.split('\n')) >= 3:
-        address_text = first_center_tag.text.split('\n')[2]
+
+    if len(address_text.split('\n')) >= 3:
+        address_text = address_text.split('\n')[2]
         # TODO: what is this dot thing?
         street = address_text.split("·")[0]
         city_state_zip = address_text.split("·")[1]
@@ -225,9 +293,9 @@ def parse_address(calendar):
         zip_code = ""
 
     address = dict(
-        street=street,
-        city=city,
-        zip_code=zip_code
+        street=street.strip().lower(),
+        city=city.strip().lower(),
+        zip_code=zip_code.strip()
     )
     return address
 
@@ -249,7 +317,7 @@ def parse_division(court_name):
     return division
 
 
-def parse_court_calendar(calendar, court_name):
+def get_court_events(calendar, court_name):
     """
     Parse the html response for an individual court calendar into a list dicts where each dict represents an
     event.
@@ -258,11 +326,11 @@ def parse_court_calendar(calendar, court_name):
     :return: A list of dicts
     """
     events = []
-    address = parse_address(calendar)
+    address = parse_address(calendar.html.find("center")[0].text)
     division = parse_division(court_name)
     event_blocks = calendar.html.find('pre')
     for event_block in event_blocks:
-        events = events + parse_event_block(event_block)
+        events = events + parse_event_block(event_block.full_text)
     [event.update(address) for event in events]
     [event.update(dict(division=division)) for event in events]
     return events
@@ -288,7 +356,7 @@ def parse_all(calendar_root_url, write_dir):
         print("Begin parsing '" + court_name + "' at '" + court_url + "'.")
         response = session.get(court_url)
         if response.ok:
-            court_events = parse_court_calendar(response, court_name)
+            court_events = get_court_events(response, court_name)
         else:
             print("ERROR: " + response.status_code + "\n")
             continue
