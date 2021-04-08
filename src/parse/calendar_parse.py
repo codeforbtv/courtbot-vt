@@ -117,9 +117,9 @@ def parse_county_subdiv_code(code):
 
 def parse_date(line):
     """
-
-    :param line:
-    :return:
+    Extract the day of week, day, and month from a line of text
+    :param line: string
+    :return: dayofweek, day, month
     """
     date_regex = r'(?P<day_of_week>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+' \
                  r'(?P<month>[a-zA-Z]{3})\.\s+(?P<day>[0-9]{1,2})'
@@ -136,9 +136,9 @@ def parse_date(line):
 
 def parse_time(line):
     """
-
-    :param line:
-    :return:
+    Extract time and am/pm from a line of text
+    :param line: string
+    :return: time, am/pm
     """
     time_regex = r'(?P<time>[0-9]{1,2}:[0-9]{2})\s+(?P<am_pm>AM|PM)'
     if re.match(time_regex, line):
@@ -152,9 +152,9 @@ def parse_time(line):
 
 def parse_court_details(line):
     """
-
-    :param line:
-    :return:
+    Extract courtroom and hearing type from a line of text
+    :param line: string
+    :return: courtroom, hearing type
     """
     court_room_hearing_type_regex = r'(?P<court_room>^.*?(?=\s{2}))\s+(?P<hearing_type>.*$)'
     if re.match(court_room_hearing_type_regex, line):
@@ -168,9 +168,9 @@ def parse_court_details(line):
 
 def parse_docket_category(line):
     """
-
-    :param line:
-    :return:
+    Extract docket and category code from a line of text
+    :param line: string
+    :return: docket, category code
     """
     docket_regex = r'(?P<docket>[0-9]{2,4}-[0-9]{1,2}-[0-9]{2})\s+(?P<category>.*$)'
     if re.search(docket_regex, line):
