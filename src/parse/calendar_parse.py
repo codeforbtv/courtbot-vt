@@ -3,7 +3,6 @@ Code for parsing event information from Vermont Judiciary block text html calend
 """
 
 import requests
-import requests_html
 import os
 import re
 import csv
@@ -286,7 +285,7 @@ def parse_address(address_text):
         street = address_text.split("·")[0]
         city_state_zip = address_text.split("·")[1]
         city = city_state_zip.split(",")[0]
-        zip_code = city_state_zip[-5:]
+        zip_code = city_state_zip[-6:]
     else:
         street = ""
         city = ""
@@ -317,20 +316,20 @@ def parse_division(court_name):
     return division
 
 
-def get_court_events(calendar, court_name):
+def get_court_events(calendar_soup, court_name):
     """
     Parse the html response for an individual court calendar into a list dicts where each dict represents an
     event.
-    :param calendar: html response for an individual court calendar
+    :param calendar_soup: BeautifulSoup object containing calendar html
     :param court_name: the name of the court. e.g. "Court Calendar for Caledonia Civil Division"
     :return: A list of dicts
     """
     events = []
-    address = parse_address(calendar.html.find("center")[0].text)
+    address = parse_address(calendar_soup.find("center").get_text().strip())
     division = parse_division(court_name)
-    event_blocks = calendar.html.find('pre')
+    event_blocks = calendar_soup.findAll('pre')
     for event_block in event_blocks:
-        events = events + parse_event_block(event_block.full_text)
+        events = events + parse_event_block(event_block.get_text().strip())
     [event.update(address) for event in events]
     [event.update(dict(division=division)) for event in events]
     return events
@@ -350,13 +349,13 @@ def parse_all(calendar_root_url, write_dir):
     court_cals = get_court_calendar_urls(calendar_root_url)
     all_court_events = []
     for court_cal in court_cals:
-        session = requests_html.HTMLSession()
         court_url = court_cal['url']
         court_name = court_cal['name']
         print("Begin parsing '" + court_name + "' at '" + court_url + "'.")
-        response = session.get(court_url)
+        response = requests.get(court_url)
         if response.ok:
-            court_events = get_court_events(response, court_name)
+            soup = BeautifulSoup(response.text, "html.parser")
+            court_events = get_court_events(soup, court_name)
         else:
             print("ERROR: " + response.status_code + "\n")
             continue
