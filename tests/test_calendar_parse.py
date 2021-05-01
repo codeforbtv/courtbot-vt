@@ -188,7 +188,12 @@ def test_extract_urls_from_soup():
 
 def test_filter_bad_urls():
     soup = file_to_soup("tests/test_urls.html")
+    filtered_url = "#main-content"
+
     urls = parser.extract_urls_from_soup(soup)
+    assert urls[0] == filtered_url
+
     urls = parser.filter_bad_urls(urls)
+    assert filtered_url not in urls
     assert urls[0] == "https://www.vermontjudiciary.org/courts/court-calendars/ans_cal.htm"
     assert urls[-1] == "https://www.vermontjudiciary.org/courts/court-calendars/wrp_cal.htm"
