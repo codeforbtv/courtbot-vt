@@ -1,8 +1,28 @@
 """
-Html text parsing tests
+Html text parsing tests - BeautifulSoup x Regex
 """
 import src.parse.calendar_parse as parser
 from bs4 import BeautifulSoup
+
+# ============================================
+# Helper functions
+# ============================================
+
+
+def file_to_soup(file_path):
+    """
+    Make a beautiful soup object from an html text file
+    :param file_path: String indicating location of html file to read
+    :return:
+    """
+    with open(file_path, "r") as soup_file:
+        response_text = soup_file.read()
+    soup = BeautifulSoup(response_text, "html.parser")
+    return soup
+
+# ============================================
+# Tests
+# ============================================
 
 
 def test_parse_address():
@@ -138,7 +158,6 @@ def test_get_court_events():
         city="hyde park",
         zip_code="05655"
     )
-
     event_2 = dict(
         docket="73-7-20",
         county="lamoille",
@@ -155,10 +174,21 @@ def test_get_court_events():
         city="hyde park",
         zip_code="05655"
     )
-
-    with open("tests/test_calendar.txt", "r") as test_calendar:
-        response_text = test_calendar.read()
-
-    soup = BeautifulSoup(response_text, "html.parser")
-
+    soup = file_to_soup("tests/test_calendar.html")
     assert [event_1, event_2] == parser.get_court_events(soup, soup.title.get_text())
+
+
+def test_extract_urls_from_soup():
+    soup = file_to_soup("tests/test_urls.html")
+    urls = parser.extract_urls_from_soup(soup)
+    assert urls[0] == "#main-content"
+    assert urls[1] == "/covid19"
+    assert urls[60] == "https://www.vermontjudiciary.org/courts/court-calendars/anf_cal.htm"
+
+
+def test_filter_bad_urls():
+    soup = file_to_soup("tests/test_urls.html")
+    urls = parser.extract_urls_from_soup(soup)
+    urls = parser.filter_bad_urls(urls)
+    assert urls[0] == "https://www.vermontjudiciary.org/courts/court-calendars/ans_cal.htm"
+    assert urls[-1] == "https://www.vermontjudiciary.org/courts/court-calendars/wrp_cal.htm"

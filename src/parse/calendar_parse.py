@@ -49,53 +49,36 @@ DIVISIONS = [
 ]
 
 
-def get_court_calendar_urls(root_url):
+def extract_urls_from_soup(soup):
     """
-    Collect urls for individual court calendars from the Vermont Judiciary site
-    :param root_url: Url to Vermont Judiciary site where all of the individual court calendars (urls) can be found.
-    :return: A list of dicts containing urls to court calendars and court names:
-    {
-        "url": "https://www.vermontjudiciary.org/courts/court-calendars/cas_cal.htm",
-        "title": "Court Calendar for Caledonia Civil Division"
-    }
+    Extract a list of urls from a BeautifulSoup object
+    :param soup: a BeautifulSoup object
+    :return: a list of urls (strings)
     """
-    print("Collecting court calendar urls.\n")
-
-    # 1) Scrape all URLS
-    page = requests.get(root_url)
-    data = page.text
-    soup = BeautifulSoup(data, "html.parser")
-    full_link_list = []
+    urls = []
     for item in soup.find_all('a'):
         href = item.get('href')
-        full_link_list.append(href)
-    full_link_string = ','.join(full_link_list)
+        urls.append(href)
+    return urls
 
-    # 2) remove itmes from list that don't start
+
+def filter_bad_urls(urls):
+    """
+    Remove urls that we can't parse (yet)
+    :param urls: list of urls (strings)
+    :return: filtered list of urls (strings)
+    """
+    url_string = ','.join(urls)
+
+    # remove items from list that don't start
     # "https://www.vermontjudiciary.org/courts/court-calendars"
     # TODO: This leaves out probate courts! Figure out how to incorporate these
-    calendar_urls = re.findall(
-        r'(https://www.vermontjudiciary.org/courts/court-calendars.+?\.htm)',
-        full_link_string)
-    # calendar_urls = re.findall(r'(' + ROOT_URL + r'.+?\.htm)', full_link_string)
-    # 3) scrape HTML title tags from each calendar
-    titles = []
-    scraped_urls = []
-    for calendar in calendar_urls:
-        page = requests.get(calendar)
-        data = page.text
-        soup = BeautifulSoup(data, "html.parser")
-        if soup.title is None:
-            print("Could not parse '" + calendar + "'. No data found.")
-            continue
-        title = soup.title.string
-        titles.append(title)
-        scraped_urls.append(calendar)
 
-    # 4) write dictionary with key=page title  value=full URL
-    title_url_list = [{"name": title, "url": url} for title, url in zip(titles, scraped_urls)]
-    print("Finished collecting court calendar urls\n")
-    return title_url_list
+    filtered_urls = re.findall(
+        r'(https://www.vermontjudiciary.org/courts/court-calendars.+?\.htm)',
+        url_string
+    )
+    return filtered_urls
 
 
 def parse_county_subdiv_code(code):
@@ -330,16 +313,23 @@ def parse_all(calendar_root_url, write_dir):
     if not os.path.isdir(write_dir):
         os.mkdir(write_dir)
 
-    court_cals = get_court_calendar_urls(calendar_root_url)
+    print("Beginning to collect court calendar urls.\n")
+    landing_page = requests.get(calendar_root_url)
+    if not landing_page.ok:
+        raise(requests.HTTPError("Failed to calendar root url: " + calendar_root_url))
+    landing_soup = BeautifulSoup(landing_page.text, "html.parser")
+    court_urls = extract_urls_from_soup(landing_soup)
+    court_urls = filter_bad_urls(court_urls)
+    print("Finished collecting court calendar urls\n")
+
     all_court_events = []
-    for court_cal in court_cals:
-        court_url = court_cal['url']
-        court_name = court_cal['name']
-        print("Begin parsing '" + court_name + "' at '" + court_url + "'.")
+    for court_url in court_urls:
+        print("Begin parsing court calendar at '" + court_url + "'.")
         response = requests.get(court_url)
         if response.ok:
-            soup = BeautifulSoup(response.text, "html.parser")
-            court_events = get_court_events(soup, court_name)
+            calendar_soup = BeautifulSoup(response.text, "html.parser")
+            court_name = calendar_soup.title.get_text()
+            court_events = get_court_events(calendar_soup, court_name)
         else:
             print("ERROR: " + response.status_code + "\n")
             continue
