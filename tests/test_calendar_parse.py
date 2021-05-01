@@ -2,6 +2,7 @@
 Html text parsing tests
 """
 import src.parse.calendar_parse as parser
+from bs4 import BeautifulSoup
 
 
 def test_parse_address():
@@ -33,6 +34,10 @@ def test_county_subdiv_code():
 def test_parse_date():
     date_text = "Monday,    Mar. 29                               State vs. Fitzgerald, Erica"
     expected_result = "monday", "29", "mar"
+    assert parser.parse_date(date_text) == expected_result
+
+    date_text = "Tuesday,   May   4                               Estate of James D. Michelson, vs. Gilmore"
+    expected_result = "tuesday", "4", "may"
     assert parser.parse_date(date_text) == expected_result
 
 
@@ -114,3 +119,46 @@ Superior Court Courtroom 1                       Change of Plea Hearing
         )
     ]
     assert expected_result == parser.parse_event_block(event_block_text)
+
+
+def test_get_court_events():
+    event_1 = dict(
+        docket="73-7-20",
+        county="lamoille",
+        subdivision="civil",
+        division="civil",
+        court_room="lamoille superior courtroom #1",
+        hearing_type="eviction hearing",
+        day_of_week="tuesday",
+        day="4",
+        month="may",
+        time="9:00",
+        am_pm="am",
+        street="po box 570",
+        city="hyde park",
+        zip_code="05655"
+    )
+
+    event_2 = dict(
+        docket="73-7-20",
+        county="lamoille",
+        subdivision="civil",
+        division="civil",
+        court_room="lamoille superior courtroom #1",
+        hearing_type="eviction hearing",
+        day_of_week="wednesday",
+        day="5",
+        month="may",
+        time="9:00",
+        am_pm="am",
+        street="po box 570",
+        city="hyde park",
+        zip_code="05655"
+    )
+
+    with open("tests/test_calendar.txt", "r") as test_calendar:
+        response_text = test_calendar.read()
+
+    soup = BeautifulSoup(response_text, "html.parser")
+
+    assert [event_1, event_2] == parser.get_court_events(soup, soup.title.get_text())

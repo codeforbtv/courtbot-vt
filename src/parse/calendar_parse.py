@@ -121,7 +121,7 @@ def parse_date(line):
     :return: dayofweek, day, month
     """
     date_regex = r'(?P<day_of_week>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+' \
-                 r'(?P<month>[a-zA-Z]{3})\.\s+(?P<day>[0-9]{1,2})'
+                 r'(?P<month>[a-zA-Z]{3})\.?\s+(?P<day>[0-9]{1,2})'
 
     if re.match(date_regex, line):
         group_dict = re.match(date_regex, line).groupdict()
@@ -210,7 +210,6 @@ def parse_event_block(event_text):
     }
     """
     events = []
-    # dockets = set()
     lines = event_text.split('\n')
     court_room_flag = False
 
@@ -236,22 +235,7 @@ def parse_event_block(event_text):
 
         if day_of_week and day and month and time and am_pm and court_room and category and docket:
             county, subdivision = parse_county_subdiv_code(category)
-            # if docket not in dockets:
-            #     events.append(
-            #         dict(
-            #             docket=docket,
-            #             county=county,
-            #             subdivision=subdivision,
-            #             court_room=court_room,
-            #             hearing_type=hearing_type,
-            #             day_of_week=day_of_week,
-            #             day=day,
-            #             month=month,
-            #             time=time,
-            #             am_pm=am_pm
-            #         )
-            #     )
-            #     dockets.add(docket)
+
             events.append(
                 dict(
                     docket=docket,
