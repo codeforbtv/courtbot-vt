@@ -3,8 +3,6 @@ Code for parsing event information from Vermont Judiciary block text html calend
 """
 
 import requests
-import requests_html
-import datetime
 import os
 import re
 import csv
@@ -51,53 +49,36 @@ DIVISIONS = [
 ]
 
 
-def get_court_calendar_urls(root_url):
+def extract_urls_from_soup(soup):
     """
-    Collect urls for individual court calendars from the Vermont Judiciary site
-    :param root_url: Url to Vermont Judiciary site where all of the individual court calendars (urls) can be found.
-    :return: A list of dicts containing urls to court calendars and court names:
-    {
-        "url": "https://www.vermontjudiciary.org/courts/court-calendars/cas_cal.htm",
-        "title": "Court Calendar for Caledonia Civil Division"
-    }
+    Extract a list of urls from a BeautifulSoup object
+    :param soup: a BeautifulSoup object
+    :return: a list of urls (strings)
     """
-    print("Collecting court calendar urls.\n")
-
-    # 1) Scrape all URLS
-    page = requests.get(root_url)
-    data = page.text
-    soup = BeautifulSoup(data, "html.parser")
-    full_link_list = []
+    urls = []
     for item in soup.find_all('a'):
         href = item.get('href')
-        full_link_list.append(href)
-    full_link_string = ','.join(full_link_list)
+        urls.append(href)
+    return urls
 
-    # 2) remove itmes from list that don't start
+
+def filter_bad_urls(urls):
+    """
+    Remove urls that we can't parse (yet)
+    :param urls: list of urls (strings)
+    :return: filtered list of urls (strings)
+    """
+    url_string = ','.join(urls)
+
+    # remove items from list that don't start
     # "https://www.vermontjudiciary.org/courts/court-calendars"
     # TODO: This leaves out probate courts! Figure out how to incorporate these
-    calendar_urls = re.findall(
-        r'(https://www.vermontjudiciary.org/courts/court-calendars.+?\.htm)',
-        full_link_string)
-    # calendar_urls = re.findall(r'(' + ROOT_URL + r'.+?\.htm)', full_link_string)
-    # 3) scrape HTML title tags from each calendar
-    titles = []
-    scraped_urls = []
-    for calendar in calendar_urls:
-        page = requests.get(calendar)
-        data = page.text
-        soup = BeautifulSoup(data, "html.parser")
-        if soup.title is None:
-            print("Could not parse '" + calendar + "'. No data found.")
-            continue
-        title = soup.title.string
-        titles.append(title)
-        scraped_urls.append(calendar)
 
-    # 4) write dictionary with key=page title  value=full URL
-    title_url_list = [{"name": title, "url": url} for title, url in zip(titles, scraped_urls)]
-    print("Finished collecting court calendar urls\n")
-    return title_url_list
+    filtered_urls = re.findall(
+        r'(https://www.vermontjudiciary.org/courts/court-calendars.+?\.htm)',
+        url_string
+    )
+    return filtered_urls
 
 
 def parse_county_subdiv_code(code):
@@ -106,17 +87,87 @@ def parse_county_subdiv_code(code):
     :param code: String of length 4. E.g. "cncr"
     :return: A tuple containing county, subvidision. E.g. (following the example above) "chittenden", "criminal"
     """
-    county_code = code[:2].lower()
-    subdiv_code = code[2:].lower().split('/')[0]
-    county = COUNTY_CODE_MAP[county_code]
-    subdiv = SUBDIV_CODE_MAP[subdiv_code]
-    return county, subdiv
+    if code is None:
+        return "", ""
+    else:
+        county_code = code[:2].lower()
+        subdiv_code = code[2:].lower().split('/')[0]
+        county = COUNTY_CODE_MAP[county_code]
+        subdiv = SUBDIV_CODE_MAP[subdiv_code]
+        return county.strip().lower(), subdiv.strip().lower()
 
 
-def parse_event_block(event_block):
+def parse_date(line):
+    """
+    Extract the day of week, day, and month from a line of text
+    :param line: string
+    :return: dayofweek, day, month
+    """
+    date_regex = r'(?P<day_of_week>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+' \
+                 r'(?P<month>[a-zA-Z]{3})\.?\s+(?P<day>[0-9]{1,2})'
+
+    if re.match(date_regex, line):
+        group_dict = re.match(date_regex, line).groupdict()
+        day_of_week = group_dict['day_of_week']
+        day = group_dict['day']
+        month = group_dict['month']
+        return day_of_week.strip().lower(), day.strip().lower(), month.strip().lower()
+    else:
+        return "", "", None
+
+
+def parse_time(line):
+    """
+    Extract time and am/pm from a line of text
+    :param line: string
+    :return: time, am/pm
+    """
+    time_regex = r'(?P<time>[0-9]{1,2}:[0-9]{2})\s+(?P<am_pm>AM|PM)'
+    if re.match(time_regex, line):
+        group_dict = re.match(time_regex, line).groupdict()
+        time = group_dict['time']
+        am_pm = group_dict['am_pm']
+        return time.strip().lower(), am_pm.strip().lower()
+    else:
+        return "", ""
+
+
+def parse_court_details(line):
+    """
+    Extract courtroom and hearing type from a line of text
+    :param line: string
+    :return: courtroom, hearing type
+    """
+    court_room_hearing_type_regex = r'(?P<court_room>^.*?(?=\s{2}))\s+(?P<hearing_type>.*$)'
+    if re.match(court_room_hearing_type_regex, line):
+        group_dict = re.match(court_room_hearing_type_regex, line).groupdict()
+        court_room = group_dict['court_room']
+        hearing_type = group_dict['hearing_type']
+        return court_room.strip().lower(), hearing_type.strip().lower()
+    else:
+        return "", ""
+
+
+def parse_docket_category(line):
+    """
+    Extract docket and category code from a line of text
+    :param line: string
+    :return: docket, category code
+    """
+    docket_regex = r'(?P<docket>[0-9]{2,4}-[0-9]{1,2}-[0-9]{2})\s+(?P<category>.*$)'
+    if re.search(docket_regex, line):
+        group_dict = re.search(docket_regex, line).groupdict()
+        docket = group_dict['docket']
+        category = group_dict['category']
+        return docket.strip().lower(), category.strip().lower()
+    else:
+        return "", ""
+
+
+def parse_event_block(event_text):
     """
     Extract event information from block of formatted text
-    :param event_block: A block of formatted text found within a <pre> tag in a vermont court calendar. E.g.:
+    :param event_text: A block of formatted text found within a <pre> tag in a vermont court calendar. E.g.:
 
     Friday,    Feb. 19                               Corporation Incorporated, LLC vs. Doe
     9:15 AM                                          114-8-20 Cacv/Civil
@@ -141,93 +192,76 @@ def parse_event_block(event_block):
         am_pm: "AM"
     }
     """
-    event_text = event_block.full_text
-    date_regex = r'(?P<day_of_week>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),\s+' \
-                 r'(?P<month>[a-zA-Z]{3})\.\s+(?P<day>[0-9]{1,2})'
-    time_regex = r'(?P<time>[0-9]{1,2}:[0-9]{2})\s+(?P<am_pm>AM|PM)'
-    docket_regex = r'(?P<docket>[0-9]{2,4}-[0-9]{1,2}-[0-9]{2})\s+(?P<category>.*$)'
-    # court_room_regex = r'(?P<court_room>^.*?(?=\s{2}))'
-    court_room_hearing_type_regex = r'(?P<court_room>^.*?(?=\s{2}))\s+(?P<hearing_type>.*$)'
     events = []
-    dockets = set()
-
     lines = event_text.split('\n')
     court_room_flag = False
 
     day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
-
     for line in lines:
         if not line:
             day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
-        if re.match(date_regex, line):
-            group_dict = re.match(date_regex, line).groupdict()
-            day_of_week = group_dict['day_of_week']
-            day = group_dict['day']
-            month = group_dict['month']
+            continue
+        if not day_of_week and not day and not month:
+            day_of_week, day, month = parse_date(line)
 
-        if re.match(time_regex, line):
-            group_dict = re.match(time_regex, line).groupdict()
-            time = group_dict['time']
-            am_pm = group_dict['am_pm']
-            court_room_flag = True
+        if not time and not am_pm:
+            time, am_pm = parse_time(line)
+            if time and am_pm:
+                court_room_flag = True
+        elif time and am_pm and court_room_flag:
+            court_room, hearing_type = parse_court_details(line)
+            if court_room and hearing_type:
+                court_room_flag = False
 
-        elif re.match(court_room_hearing_type_regex, line) and court_room_flag:
-            group_dict = re.match(court_room_hearing_type_regex, line).groupdict()
-            court_room = group_dict['court_room']
-            hearing_type = group_dict['hearing_type']
-            court_room_flag = False
-
-        if re.search(docket_regex, line):
-            group_dict = re.search(docket_regex, line).groupdict()
-            docket = group_dict['docket']
-            category = group_dict['category']
+        if not docket and not category:
+            docket, category = parse_docket_category(line)
 
         if day_of_week and day and month and time and am_pm and court_room and category and docket:
             county, subdivision = parse_county_subdiv_code(category)
-            if docket not in dockets:
-                events.append(
-                    dict(
-                        docket=docket,
-                        county=county,
-                        subdivision=subdivision,
-                        court_room=court_room,
-                        hearing_type=hearing_type,
-                        day_of_week=day_of_week,
-                        day=day,
-                        month=month,
-                        time=time,
-                        am_pm=am_pm
-                    )
+
+            events.append(
+                dict(
+                    docket=docket,
+                    county=county,
+                    subdivision=subdivision,
+                    court_room=court_room,
+                    hearing_type=hearing_type,
+                    day_of_week=day_of_week,
+                    day=day,
+                    month=month,
+                    time=time,
+                    am_pm=am_pm
                 )
-                dockets.add(docket)
+            )
+            day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
 
     return events
 
 
-def parse_address(calendar):
+def parse_address(address_text):
     """
     Parse the address fields (street, city, zip) from a court calendar html response
-    :param calendar: html response for an individual court calendar
+    :param address_text: text containing address information
     :return: A dictionary structured as follows:
     {"street": "<street name and number>", "city": "<name of city>", "zip_code": "<5 digit zip>"}
     """
-    first_center_tag = calendar.html.find("center")[0]
-    if len(first_center_tag.text.split('\n')) >= 3:
-        address_text = first_center_tag.text.split('\n')[2]
+
+    if len(address_text.split('\n')) >= 3:
+        address_text = address_text.split('\n')[2]
         # TODO: what is this dot thing?
         street = address_text.split("·")[0]
         city_state_zip = address_text.split("·")[1]
         city = city_state_zip.split(",")[0]
-        zip_code = city_state_zip[-5:]
+        zip_code = city_state_zip[-6:]
     else:
         street = ""
         city = ""
         zip_code = ""
 
     address = dict(
-        street=street,
-        city=city,
-        zip_code=zip_code
+        street=street.strip().lower(),
+        city=city.strip().lower(),
+        zip_code=zip_code.strip()
     )
     return address
 
@@ -249,20 +283,20 @@ def parse_division(court_name):
     return division
 
 
-def parse_court_calendar(calendar, court_name):
+def get_court_events(calendar_soup, court_name):
     """
     Parse the html response for an individual court calendar into a list dicts where each dict represents an
     event.
-    :param calendar: html response for an individual court calendar
+    :param calendar_soup: BeautifulSoup object containing calendar html
     :param court_name: the name of the court. e.g. "Court Calendar for Caledonia Civil Division"
     :return: A list of dicts
     """
     events = []
-    address = parse_address(calendar)
+    address = parse_address(calendar_soup.find("center").get_text().strip())
     division = parse_division(court_name)
-    event_blocks = calendar.html.find('pre')
+    event_blocks = calendar_soup.findAll('pre')
     for event_block in event_blocks:
-        events = events + parse_event_block(event_block)
+        events = events + parse_event_block(event_block.get_text().strip())
     [event.update(address) for event in events]
     [event.update(dict(division=division)) for event in events]
     return events
@@ -279,16 +313,23 @@ def parse_all(calendar_root_url, write_dir):
     if not os.path.isdir(write_dir):
         os.mkdir(write_dir)
 
-    court_cals = get_court_calendar_urls(calendar_root_url)
+    print("Beginning to collect court calendar urls.\n")
+    landing_page = requests.get(calendar_root_url)
+    if not landing_page.ok:
+        raise(requests.HTTPError("Failed to calendar root url: " + calendar_root_url))
+    landing_soup = BeautifulSoup(landing_page.text, "html.parser")
+    court_urls = extract_urls_from_soup(landing_soup)
+    court_urls = filter_bad_urls(court_urls)
+    print("Finished collecting court calendar urls\n")
+
     all_court_events = []
-    for court_cal in court_cals:
-        session = requests_html.HTMLSession()
-        court_url = court_cal['url']
-        court_name = court_cal['name']
-        print("Begin parsing '" + court_name + "' at '" + court_url + "'.")
-        response = session.get(court_url)
+    for court_url in court_urls:
+        print("Begin parsing court calendar at '" + court_url + "'.")
+        response = requests.get(court_url)
         if response.ok:
-            court_events = parse_court_calendar(response, court_name)
+            calendar_soup = BeautifulSoup(response.text, "html.parser")
+            court_name = calendar_soup.title.get_text()
+            court_events = get_court_events(calendar_soup, court_name)
         else:
             print("ERROR: " + response.status_code + "\n")
             continue
