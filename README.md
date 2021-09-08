@@ -33,7 +33,13 @@ python3 src/config/config.py
 ```
 local_calendar_repo_path: <path_to_court-calendar_repo>
 ```
-7. Deactivate the virtual env
+7. Within folder mongo, create a file named "mongo_credentials.py". Add credentials to file using the following variable names:
+```
+mongo_user = <mongo-cluster-username>
+mongo_pass = <mongo-cluster-password>
+```
+8. In the mongo/write_to_mongo.py file, change the variable `connection_string` to be the subset of text following the "@" in your MongoDb Atlas connection string. This implementation assumes you have a database named "courtbot" with a collection named "events"
+9. Deactivate the virtual env
 ```
 deactivate
 ```

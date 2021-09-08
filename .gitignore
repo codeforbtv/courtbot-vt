@@ -133,3 +133,7 @@ dmypy.json
 
 # courtbot stuff
 .main.sh
+
+#MongoDB Credentials
+src/mongo/mongo_credentials.py
+.DS_Store

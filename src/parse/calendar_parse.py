@@ -347,4 +347,4 @@ def parse_all(calendar_root_url, write_dir):
         dict_writer.writeheader()
         dict_writer.writerows(all_court_events)
 
-    return write_file
+    return write_file, all_court_events

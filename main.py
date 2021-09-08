@@ -8,6 +8,7 @@ python3 main.py
 import src.parse.calendar_parse as parser
 import src.github_database.write_events as event_writer
 import src.config.config as courtbot_config
+import src.mongo.write_to_mongo as write_mongo
 
 
 def main():
@@ -22,11 +23,12 @@ def main():
     local_calendar_repo = courtbot_config.get_config_field("local_calendar_repo_path")
 
     print("Parsing all court calendars found at " + calendar_root_url + "\n")
-    events_csv = parser.parse_all(calendar_root_url, local_calendar_repo)
+    events_csv, all_court_events = parser.parse_all(calendar_root_url, local_calendar_repo)
     print("Finished parsing all court calendars\n")
 
     print("Writing json files for parsed court events\n")
     event_writer.write_events(events_csv, ".", local_calendar_repo)
+    post_mongo = write_mongo.postMongo(all_court_events)
     print("Finished writing json files for parsed court events\n")
 
     event_writer.commit_push(local_calendar_repo, "." + "/", "Adding newest court event json files")
