@@ -5,7 +5,7 @@ from src.mongo.mongo_credentials import mongo_user, mongo_pass
 
 def postMongo(body):
 
-    connection_string = ""
+    connection_string = "@cluster0.tcw81.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 
     server_address = "mongodb+srv://" + mongo_user + ":" + mongo_pass + connection_string
     client = pymongo.MongoClient(server_address)
