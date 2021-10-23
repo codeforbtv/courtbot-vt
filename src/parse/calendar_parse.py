@@ -38,6 +38,7 @@ SUBDIV_CODE_MAP = dict(
     mh="mental health",
     sa="TODO",  # TODO
     cm="civil miscellaneous",
+    ta="traffic appeal",
 )
 
 DIVISIONS = [

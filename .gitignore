@@ -137,3 +137,6 @@ dmypy.json
 #MongoDB Credentials
 src/mongo/mongo_credentials.py
 .DS_Store
+
+# data directore where we write the csv file
+/data
