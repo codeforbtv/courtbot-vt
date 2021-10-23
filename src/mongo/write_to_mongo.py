@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 # load config from .env file if there is one
 load_dotenv()
 
-MONGODB_URI = os.getenv('MONGODB_URI')
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "events")
 
 def postMongo(body):
     # throw an error if the mongo connection string is not set
@@ -14,6 +15,6 @@ def postMongo(body):
 
     client = pymongo.MongoClient(MONGODB_URI)
     db = client.courtbot
-    mycol = db["events_test"]
+    mycol = db[MONGO_COLLECTION]
 
     x = mycol.insert_many(body)
