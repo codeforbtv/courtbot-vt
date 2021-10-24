@@ -7,6 +7,7 @@ import os
 import re
 import csv
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 COUNTY_CODE_MAP = dict(
     an="addison",
@@ -38,6 +39,7 @@ SUBDIV_CODE_MAP = dict(
     mh="mental health",
     sa="TODO",  # TODO
     cm="civil miscellaneous",
+    fg='fish and game',
     ta="traffic appeal",
 )
 
@@ -165,6 +167,20 @@ def parse_docket_category(line):
         return "", ""
 
 
+def get_date_time(day,month,time,am_pm):
+    month_int = int(datetime.strptime(month, '%b').strftime('%m'))
+    now = datetime.now()
+    now_month = now.month
+    now_year = now.year
+    if month_int <= now_month-6:
+            year = now_year+1
+    else: year = now_year
+    date_time_str = day + "/" + month + "/" + str(year) + " " + time + am_pm #but we will need to check we need the actual year or year +1
+    date_time_obj = datetime.strptime(date_time_str, '%d/%b/%Y %I:%M%p')
+
+    return date_time_obj
+
+
 def parse_event_block(event_text):
     """
     Extract event information from block of formatted text
@@ -231,7 +247,8 @@ def parse_event_block(event_text):
                     day=day,
                     month=month,
                     time=time,
-                    am_pm=am_pm
+                    am_pm=am_pm,
+                    date = get_date_time(day,month,time,am_pm),
                 )
             )
             day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''

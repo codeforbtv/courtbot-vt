@@ -64,3 +64,40 @@ python3 main.py
 ```
 4. If `WRITE_TO_GIT_REPO=true`, check results pushed to your development branch in the `court-calendars` repo. 
 5. Deactivate the virtual env (step 7 in `Setup`)
+
+## Heroku Setup
+
+```
+# install heroku if not already
+# linux
+curl https://cli-assets.heroku.com/install.sh | sh
+
+# log into heroku
+heroku login
+
+# add project to heroku
+heroku git:remote -a courtbotvt-scraper
+
+# add config vars
+heroku config:set MONGODB_URI=<connection string>
+heroku config:set MONGO_COLLECTION=<collection name>
+```
+
+## heroku scheduler
+
+```
+# add scheduler for daily scraping
+# install scheduler addon
+heroku addons:create scheduler:standard
+```
+
+go to (heroku dashboard)[https://dashboard.heroku.com/] and create a job with the following command
+`python main.py`
+Set it to run at 4PM UTC which is 12PM EDT or 11AM EST.
+
+## heroku deployment
+
+```
+# deploy latest site
+git push heroku main
+```
