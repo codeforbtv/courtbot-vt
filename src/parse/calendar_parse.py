@@ -7,7 +7,7 @@ import os
 import re
 import csv
 from bs4 import BeautifulSoup
-import datetime
+from datetime import datetime
 import dateutil.tz
 
 
