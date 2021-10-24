@@ -7,7 +7,9 @@ import os
 import re
 import csv
 from bs4 import BeautifulSoup
-from datetime import datetime
+import datetime
+import dateutil.tz
+
 
 COUNTY_CODE_MAP = dict(
     an="addison",
@@ -176,7 +178,7 @@ def get_date_time(day,month,time,am_pm):
             year = now_year+1
     else: year = now_year
     date_time_str = day + "/" + month + "/" + str(year) + " " + time + am_pm #but we will need to check we need the actual year or year +1
-    date_time_obj = datetime.strptime(date_time_str, '%d/%b/%Y %I:%M%p')
+    date_time_obj = datetime.strptime(date_time_str, '%d/%b/%Y %I:%M%p').replace(tzinfo=dateutil.tz.gettz('America/New_York'))
 
     return date_time_obj
 
