@@ -339,14 +339,14 @@ def parse_all(calendar_root_url, write_dir):
     if not os.path.isdir(write_dir):
         os.mkdir(write_dir)
 
-    logging.info("Beginning to collect court calendar urls.\n")
+    logging.info("Beginning to collect court calendar urls.")
     landing_page = requests.get(calendar_root_url)
     if not landing_page.ok:
         raise(requests.HTTPError("Failed to calendar root url: " + calendar_root_url))
     landing_soup = BeautifulSoup(landing_page.text, "html.parser")
     court_urls = extract_urls_from_soup(landing_soup)
     court_urls = filter_bad_urls(court_urls)
-    logging.info("Finished collecting court calendar urls\n")
+    logging.info("Finished collecting court calendar urls")
 
     all_court_events = []
     for court_url in court_urls:
@@ -357,14 +357,14 @@ def parse_all(calendar_root_url, write_dir):
             court_name = calendar_soup.title.get_text()
             court_events = get_court_events(calendar_soup, court_name)
         else:
-            logging.error("ERROR: " + response.status_code + "\n")
+            logging.error("ERROR: " + response.status_code)
             continue
         if not len(court_events):
-            logging.info("No data found for " + court_name + " at " + court_url + "\n")
+            logging.info("No data found for " + court_name + " at " + court_url)
             continue
         else:
             all_court_events = all_court_events + court_events
-            logging.info("Done parsing '" + court_name + "' at '" + court_url + "'.\n")
+            logging.info("Done parsing '" + court_name + "' at '" + court_url + "'.")
 
     keys = all_court_events[0].keys()
     write_file = os.path.join(write_dir,  'court_events.csv')
