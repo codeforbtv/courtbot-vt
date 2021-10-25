@@ -10,6 +10,9 @@ import src.github_database.write_events as event_writer
 import src.mongo.write_to_mongo as write_mongo
 from dotenv import load_dotenv
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 # load config from .env file if there is one
 load_dotenv()
@@ -29,19 +32,19 @@ def main():
     :return:
     """
 
-    print("Parsing all court calendars found at " + CALENDAR_ROOT_URL + "\n")
+    logging.info("Parsing all court calendars found at " + CALENDAR_ROOT_URL)
     events_csv, all_court_events = parser.parse_all(CALENDAR_ROOT_URL, WRITE_DIR)
-    print("Finished parsing all court calendars\n")
+    logging.info("Finished parsing all court calendars")
 
-    print("Writing court events to mongo\n")
+    logging.info("Writing court events to mongo")
     post_mongo = write_mongo.postMongo(all_court_events)
-    print("Finished writing court events to mongo\n")
+    logging.info("Finished writing court events to mongo")
 
     if WRITE_TO_GIT_REPO:
-        print("Writing json files for parsed court events\n")
+        logging.info("Writing json files for parsed court events")
         event_writer.write_events(events_csv, ".", LOCAL_CALENDAR_REPO_PATH)
         event_writer.commit_push(LOCAL_CALENDAR_REPO_PATH, "." + "/", "Adding newest court event json files")
-        print("Finished writing json files for parsed court events\n")
+        logging.info("Finished writing json files for parsed court events")
 
 
 if __name__ == "__main__":
