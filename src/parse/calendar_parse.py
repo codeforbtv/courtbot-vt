@@ -24,6 +24,7 @@ COUNTY_CODE_MAP = dict(
     wn="washington",
     wm="windham",
     wr="windsor",
+    xx = "testing county"
 )
 
 SUBDIV_CODE_MAP = dict(
@@ -37,10 +38,17 @@ SUBDIV_CODE_MAP = dict(
     cs="civil suspension",
     jv="juvenile",
     mh="mental health",
-    sa="TODO",  # TODO
     cm="civil miscellaneous",
     fg='fish and game',
-    ta='traffic appeal'
+    ta='traffic appeal',
+    st = 'stalking',
+    sa="also stalking?",
+    ir = 'confidential case type',
+    gs = 'also confidential case type',
+    er = 'extreme risk protection order',
+    jb = 'Judicial Bureau appeal',
+   #mhg='TODO', #TODO: figure out what this is
+
 )
 
 DIVISIONS = [
@@ -154,14 +162,26 @@ def parse_court_details(line):
 def parse_docket_category(line):
     """
     Extract docket and category code from a line of text
+    'docket_regex' pattern is for case numbers of form: 316-8-18 Ancr/Criminal
+    'docket_regex_v2' pattern is for new case numbers of form: 21-CR-08931
     :param line: string
     :return: docket, category code
     """
     docket_regex = r'(?P<docket>[0-9]{2,4}-[0-9]{1,2}-[0-9]{2})\s+(?P<category>.*$)'
+    docket_regex_v2 = r'(?P<year>[0-9][0-9])-(?P<subdivision>[A-Z][A-Z])-(?P<docket>[0-9]{5})'
+
     if re.search(docket_regex, line):
         group_dict = re.search(docket_regex, line).groupdict()
         docket = group_dict['docket']
         category = group_dict['category']
+        print("************************trying first regex**************************")
+        return docket.strip().lower(), category.strip().lower()
+    elif re.search(docket_regex_v2, line):
+        group_dict = re.search(docket_regex_v2, line).groupdict()
+        docket = group_dict['docket']
+        category = "XX" + group_dict['subdivision'] #getting to four level code expected by
+        print(docket, category)
+        print("***********************trying second regex***********************************")
         return docket.strip().lower(), category.strip().lower()
     else:
         return "", ""
