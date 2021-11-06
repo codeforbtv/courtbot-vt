@@ -41,13 +41,13 @@ SUBDIV_CODE_MAP = dict(
     cm="civil miscellaneous",
     fg='fish and game',
     ta='traffic appeal',
-    st = 'stalking',
+    st ='stalking',
     sa="also stalking?",
-    ir = 'confidential case type',
-    gs = 'also confidential case type',
-    er = 'extreme risk protection order',
-    jb = 'Judicial Bureau appeal',
-   #mhg='TODO', #TODO: figure out what this is
+    ir ='confidential case type',
+    gs ='also confidential case type',
+    er ='extreme risk protection order',
+    jb='Judicial Bureau Appeal',
+   mhg='TODO', #TODO: figure out what this is
 
 )
 
