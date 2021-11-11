@@ -7,6 +7,7 @@ import pandas
 import json
 import subprocess as cmd
 import os
+import logging
 
 
 def create_docket_link(file_path, github_branch="main", repo_name="court-calendars", github_org="codeforbtv",
@@ -52,7 +53,7 @@ def write_events(event_csv, write_dir, local_calendar_repo):
                 (calendar_table.county == county) & (calendar_table.division == division)].groupby("docket")
 
             for docket in docket_groups.groups.keys():
-                print("County: " + county + " Division: " + division + " Docket: " + docket + "\n")
+                logging.info("County: " + county + " Division: " + division + " Docket: " + docket + "\n")
                 docket_events = docket_groups.get_group(docket).to_dict("records")
                 docket_path = os.path.join(court_path, docket + ".json")
                 with open(docket_path, "w") as docket_file:
@@ -76,5 +77,5 @@ def commit_push(repo_directory, add_path, message):
         cmd.run("git push", check=True, shell=True)
         return True
     except cmd.CalledProcessError as e:
-        print("Failed to commit and push with the following error: \n" + str(e))
+        logging.error("Failed to commit and push with the following error: \n" + str(e))
         return False
