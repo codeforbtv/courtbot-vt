@@ -24,22 +24,25 @@ source env/bin/activate
 ```
 pip install -r requirements.txt
 ```
-5. Generate a yaml config file (writes a file to `~/.courtbot-vt/config.yaml`):
+5. Create a `.env` file to define config variables that will be used:
 ```
 python3 src/config/config.py
 ```
-6. Open `~/.courtbot-vt/config.yaml` and overwrite the default path to your local court-calendar repo
-(created in step 2):
+6. Open `.env` and populate the variables:
 ```
-local_calendar_repo_path: <path_to_court-calendar_repo>
+# overwrite the default path to your local court-calendar repo (created in step 2)
+LOCAL_CALENDAR_REPO_PATH=/home/eugeneyum/projects/code-for-btv/court-calendars
+
+# the connection string to use to connect to mongo
+MONGODB_URI="mongodb+srv://<username>:<password>@cluster0.tcw81.mongodb.net/courtbot?retryWrites=true&w=majority"
+
+# the mongo collection name to use in order to write the events
+MONGO_COLLECTION=events
+
+# change to true if we want to write to a local git repo
+WRITE_TO_GIT_REPO=false
 ```
-7. Within folder mongo, create a file named "mongo_credentials.py". Add credentials to file using the following variable names:
-```
-mongo_user = <mongo-cluster-username>
-mongo_pass = <mongo-cluster-password>
-```
-8. In the mongo/write_to_mongo.py file, change the variable `connection_string` to be the subset of text following the "@" in your MongoDb Atlas connection string. This implementation assumes you have a database named "courtbot" with a collection named "events"
-9. Deactivate the virtual env
+7. Deactivate the virtual env
 ```
 deactivate
 ```
@@ -53,15 +56,48 @@ pytest
 3. Deactivate the virtual env when you are finished (step 7 in `Setup`). 
 
 ## Run
-1. Make sure you set the `court-calendars` repo (cloned in step 2 of `Setup`) set to a safe development branch (i.e. not `main`). 
-2. Overwrite the default github branch for the court-calendar repo in the `~/.courtbot-vt/config.yaml` file (generated in step 5 of `Setup`). This branch name should match the branch you set/created in step 1 of `Run`.:
-```
-github_branch: <branch_where_new_events_will_be_pushed>
-```
-3. Activate the virtual env (step 3 in `Setup`). 
-4. Run main (parses court calendars and writes docket specific json files to the court-calendar repo):
+1. If `WRITE_TO_GIT_REPO=true`, make sure you set the `court-calendars` repo (cloned in step 2 of `Setup`) set to a safe development branch (i.e. not `main`).
+2. Activate the virtual env (step 3 in `Setup`). 
+3. Run main (parses court calendars and writes docket specific json files to the court-calendar repo):
 ```
 python3 main.py
 ```
-5. Check results pushed to your development branch in the `court-calendars` repo. 
-6. Deactivate the virtual env (step 7 in `Setup`)
+4. If `WRITE_TO_GIT_REPO=true`, check results pushed to your development branch in the `court-calendars` repo. 
+5. Deactivate the virtual env (step 7 in `Setup`)
+
+## Heroku Setup
+
+```
+# install heroku if not already
+# linux
+curl https://cli-assets.heroku.com/install.sh | sh
+
+# log into heroku
+heroku login
+
+# add project to heroku
+heroku git:remote -a courtbotvt-scraper
+
+# add config vars
+heroku config:set MONGODB_URI=<connection string>
+heroku config:set MONGO_COLLECTION=<collection name>
+```
+
+## heroku scheduler
+
+```
+# add scheduler for daily scraping
+# install scheduler addon
+heroku addons:create scheduler:standard
+```
+
+go to (heroku dashboard)[https://dashboard.heroku.com/] and create a job with the following command
+`python main.py`
+Set it to run at 4PM UTC which is 12PM EDT or 11AM EST.
+
+## heroku deployment
+
+```
+# deploy latest site
+git push heroku main
+```
