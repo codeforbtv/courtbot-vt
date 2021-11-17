@@ -7,6 +7,9 @@ import os
 import re
 import csv
 from bs4 import BeautifulSoup
+from datetime import datetime
+import dateutil.tz
+import logging
 
 COUNTY_CODE_MAP = dict(
     an="addison",
@@ -23,6 +26,7 @@ COUNTY_CODE_MAP = dict(
     wn="washington",
     wm="windham",
     wr="windsor",
+    xx = "testing county"
 )
 
 SUBDIV_CODE_MAP = dict(
@@ -36,8 +40,16 @@ SUBDIV_CODE_MAP = dict(
     cs="civil suspension",
     jv="juvenile",
     mh="mental health",
-    sa="TODO",  # TODO
     cm="civil miscellaneous",
+    fg='fish and game',
+    ta='traffic appeal',
+    st ='stalking',
+    sa="also stalking?",
+    ir ='confidential case type',
+    gs ='also confidential case type',
+    er ='extreme risk protection order',
+    jb='Judicial Bureau Appeal',
+   mhg='TODO', #TODO: figure out what this is
 )
 
 DIVISIONS = [
@@ -151,17 +163,57 @@ def parse_court_details(line):
 def parse_docket_category(line):
     """
     Extract docket and category code from a line of text
+    'docket_regex' pattern is for case numbers of form: 316-8-18 Ancr/Criminal
+    'docket_regex_v2' pattern is for new case numbers of form: 21-CR-08931
     :param line: string
     :return: docket, category code
     """
     docket_regex = r'(?P<docket>[0-9]{2,4}-[0-9]{1,2}-[0-9]{2})\s+(?P<category>.*$)'
+    docket_regex_v2 = r'(?P<year>[0-9][0-9])-(?P<subdivision>[A-Z][A-Z])-(?P<docket>[0-9]{5})'
+
     if re.search(docket_regex, line):
         group_dict = re.search(docket_regex, line).groupdict()
         docket = group_dict['docket']
         category = group_dict['category']
+        print("************************trying first regex**************************")
+        return docket.strip().lower(), category.strip().lower()
+    elif re.search(docket_regex_v2, line):
+        group_dict = re.search(docket_regex_v2, line).groupdict()
+        docket = group_dict['docket']
+        category = "XX" + group_dict['subdivision'] #getting to four level code expected by
+        print(docket, category)
+        print("***********************trying second regex***********************************")
         return docket.strip().lower(), category.strip().lower()
     else:
         return "", ""
+
+def get_date_time(day,month,time,am_pm):
+
+    month_int = int(datetime.strptime(month, '%b').strftime('%m'))
+    now = datetime.now()
+    now_month = now.month
+    now_year = now.year
+    if month_int <= now_month-6:
+            year = now_year+1
+    else: year = now_year
+    date_time_str = day + "/" + month + "/" + str(year) + " " + time + am_pm #but we will need to check we need the actual year or year +1
+    date_time_obj = datetime.strptime(date_time_str, '%d/%b/%Y %I:%M%p')
+
+    return date_time_obj
+
+
+def get_date_time(day,month,time,am_pm):
+    month_int = int(datetime.strptime(month, '%b').strftime('%m'))
+    now = datetime.now()
+    now_month = now.month
+    now_year = now.year
+    if month_int <= now_month-6:
+            year = now_year+1
+    else: year = now_year
+    date_time_str = day + "/" + month + "/" + str(year) + " " + time + am_pm #but we will need to check we need the actual year or year +1
+    date_time_obj = datetime.strptime(date_time_str, '%d/%b/%Y %I:%M%p').replace(tzinfo=dateutil.tz.gettz('America/New_York'))
+
+    return date_time_obj
 
 
 def parse_event_block(event_text):
@@ -197,43 +249,52 @@ def parse_event_block(event_text):
     court_room_flag = False
 
     day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
-    for line in lines:
-        if not line:
-            day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
-            continue
-        if not day_of_week and not day and not month:
-            day_of_week, day, month = parse_date(line)
 
-        if not time and not am_pm:
-            time, am_pm = parse_time(line)
-            if time and am_pm:
-                court_room_flag = True
-        elif time and am_pm and court_room_flag:
-            court_room, hearing_type = parse_court_details(line)
-            if court_room and hearing_type:
-                court_room_flag = False
+    for idx, line in enumerate(lines):
+        try:
+            if not line:
+                day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
+                continue
+            if not day_of_week and not day and not month:
+                day_of_week, day, month = parse_date(line)
 
-        if not docket and not category:
-            docket, category = parse_docket_category(line)
+            if not time and not am_pm:
+                time, am_pm = parse_time(line)
+                if time and am_pm:
+                    court_room_flag = True
+            elif time and am_pm and court_room_flag:
+                court_room, hearing_type = parse_court_details(line)
+                if court_room and hearing_type:
+                    court_room_flag = False
 
-        if day_of_week and day and month and time and am_pm and court_room and category and docket:
-            county, subdivision = parse_county_subdiv_code(category)
+            if not docket and not category:
+                docket, category = parse_docket_category(line)
 
-            events.append(
-                dict(
-                    docket=docket,
-                    county=county,
-                    subdivision=subdivision,
-                    court_room=court_room,
-                    hearing_type=hearing_type,
-                    day_of_week=day_of_week,
-                    day=day,
-                    month=month,
-                    time=time,
-                    am_pm=am_pm
+            if day_of_week and day and month and time and am_pm and court_room and category and docket:
+                county, subdivision = parse_county_subdiv_code(category)
+
+                events.append(
+                    dict(
+                        docket=docket,
+                        county=county,
+                        subdivision=subdivision,
+                        court_room=court_room,
+                        hearing_type=hearing_type,
+                        day_of_week=day_of_week,
+                        day=day,
+                        month=month,
+                        time=time,
+                        am_pm=am_pm,
+                        date = get_date_time(day,month,time,am_pm),
+                    )
                 )
-            )
-            day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
+                day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
+        except Exception as err:
+            logging.error('Error in parsing')
+            if idx > 0:
+                logging.error(lines[idx-1])
+            logging.error(lines[idx])
+            logging.exception(err)
 
     return events
 
@@ -313,32 +374,32 @@ def parse_all(calendar_root_url, write_dir):
     if not os.path.isdir(write_dir):
         os.mkdir(write_dir)
 
-    print("Beginning to collect court calendar urls.\n")
+    logging.info("Beginning to collect court calendar urls.")
     landing_page = requests.get(calendar_root_url)
     if not landing_page.ok:
         raise(requests.HTTPError("Failed to calendar root url: " + calendar_root_url))
     landing_soup = BeautifulSoup(landing_page.text, "html.parser")
     court_urls = extract_urls_from_soup(landing_soup)
     court_urls = filter_bad_urls(court_urls)
-    print("Finished collecting court calendar urls\n")
+    logging.info("Finished collecting court calendar urls")
 
     all_court_events = []
     for court_url in court_urls:
-        print("Begin parsing court calendar at '" + court_url + "'.")
+        logging.info("Begin parsing court calendar at '" + court_url + "'.")
         response = requests.get(court_url)
         if response.ok:
             calendar_soup = BeautifulSoup(response.text, "html.parser")
             court_name = calendar_soup.title.get_text()
             court_events = get_court_events(calendar_soup, court_name)
         else:
-            print("ERROR: " + response.status_code + "\n")
+            logging.error("ERROR: " + response.status_code)
             continue
         if not len(court_events):
-            print("No data found for " + court_name + " at " + court_url + "\n")
+            logging.info("No data found for " + court_name + " at " + court_url)
             continue
         else:
             all_court_events = all_court_events + court_events
-            print("Done parsing '" + court_name + "' at '" + court_url + "'.\n")
+            logging.info("Done parsing '" + court_name + "' at '" + court_url + "'.")
 
     keys = all_court_events[0].keys()
     write_file = os.path.join(write_dir,  'court_events.csv')
@@ -347,4 +408,4 @@ def parse_all(calendar_root_url, write_dir):
         dict_writer.writeheader()
         dict_writer.writerows(all_court_events)
 
-    return write_file
+    return write_file, all_court_events
