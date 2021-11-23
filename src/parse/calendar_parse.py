@@ -172,18 +172,17 @@ def parse_docket_category(line):
     docket_regex_v2 = r'(?P<year>[0-9][0-9])-(?P<subdivision>[A-Z][A-Z])-(?P<docket>[0-9]{5})'
 
     if re.search(docket_regex, line):
+        logging.info("************************matched 1st regex**************************")
         group_dict = re.search(docket_regex, line).groupdict()
         docket = group_dict['docket']
         category = group_dict['category']
-        logging.info("************************trying first regex**************************")
         return docket.strip().lower(), category.strip().lower()
     elif re.search(docket_regex_v2, line):
-        group_dict = re.search(docket_regex_v2, line).groupdict()
-        docket = group_dict['docket']
+        logging.info("***********************matched 2nd regex***********************************")
+        m = re.search(docket_regex_v2, line)
+        group_dict = m.groupdict()
+        docket = m[0]
         category = "XX" + group_dict['subdivision'] #getting to four level code expected by
-        logging.info(f"docket = {docket}")
-        logging.info(f"category = {category}")
-        logging.info("***********************trying second regex***********************************")
         return docket.strip().lower(), category.strip().lower()
     else:
         return "", ""
@@ -270,6 +269,9 @@ def parse_event_block(event_text):
 
             if not docket and not category:
                 docket, category = parse_docket_category(line)
+                if docket and category:
+                    logging.info(f"docket = {docket}")
+                    logging.info(f"category = {category}")
 
             if day_of_week and day and month and time and am_pm and court_room and category and docket:
                 county, subdivision = parse_county_subdiv_code(category)
