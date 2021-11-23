@@ -181,7 +181,8 @@ def parse_docket_category(line):
         group_dict = re.search(docket_regex_v2, line).groupdict()
         docket = group_dict['docket']
         category = "XX" + group_dict['subdivision'] #getting to four level code expected by
-        logging.info(docket, category)
+        logging.info(f"docket = {docket}")
+        logging.info(f"category = {category}")
         logging.info("***********************trying second regex***********************************")
         return docket.strip().lower(), category.strip().lower()
     else:
