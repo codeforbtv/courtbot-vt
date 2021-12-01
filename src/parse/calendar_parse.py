@@ -108,6 +108,20 @@ def parse_county_subdiv_code(code):
         subdiv = SUBDIV_CODE_MAP[subdiv_code]
         return county.strip().lower(), subdiv.strip().lower()
 
+def parse_county_name_from_HTML_title(court_name):
+
+
+    county_list = ["addison","bennington","caledonia", "chittenden", "essex", "franklin","grand isle", "lamoille","orange", "orleans", "rutland","washington","windham","windsor"]
+    county_list = "|".join(county_list)
+    pattern = r'.*(?P<county_name>'+county_list+').*'
+
+    try:
+        m = re.match(pattern,court_name)
+        county_name = m.group(1)
+    except:
+        county_name = "n/a"
+    return county_name
+
 
 def parse_date(line):
     """
@@ -216,7 +230,9 @@ def get_date_time(day,month,time,am_pm):
     return date_time_obj
 
 
-def parse_event_block(event_text):
+def parse_event_block(event_text,county_name):
+
+
     """
     Extract event information from block of formatted text
     :param event_text: A block of formatted text found within a <pre> tag in a vermont court calendar. E.g.:
@@ -271,13 +287,13 @@ def parse_event_block(event_text):
                 docket, category = parse_docket_category(line)
 
             if day_of_week and day and month and time and am_pm and court_room and category and docket:
-                county, subdivision = parse_county_subdiv_code(category)
+                old_county, subdivision = parse_county_subdiv_code(category)
 
                 events.append(
                     dict(
                         docket=docket,
-                        county=county,
-                        subdivision=subdivision,
+                        county=county_name,
+                        subdivision= subdivision,
                         court_room=court_room,
                         hearing_type=hearing_type,
                         day_of_week=day_of_week,
@@ -285,7 +301,8 @@ def parse_event_block(event_text):
                         month=month,
                         time=time,
                         am_pm=am_pm,
-                        date = get_date_time(day,month,time,am_pm),
+                        date = get_date_time(day,month,time,am_pm)
+
                     )
                 )
                 day_of_week = day = month = time = am_pm = docket = category = court_room = hearing_type = ''
@@ -356,8 +373,10 @@ def get_court_events(calendar_soup, court_name):
     address = parse_address(calendar_soup.find("center").get_text().strip())
     division = parse_division(court_name)
     event_blocks = calendar_soup.findAll('pre')
+    county_name = parse_county_name_from_HTML_title(court_name.lower())
+
     for event_block in event_blocks:
-        events = events + parse_event_block(event_block.get_text().strip())
+        events = events + parse_event_block(event_block.get_text().strip(),county_name)
     [event.update(address) for event in events]
     [event.update(dict(division=division)) for event in events]
     return events
