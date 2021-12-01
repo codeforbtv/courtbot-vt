@@ -60,7 +60,7 @@ pytest
 2. Activate the virtual env (step 3 in `Setup`). 
 3. Run main (parses court calendars and writes docket specific json files to the court-calendar repo):
 ```
-python3 main.py
+python3 main.py (If that doesn't work try python main.py)
 ```
 4. If `WRITE_TO_GIT_REPO=true`, check results pushed to your development branch in the `court-calendars` repo. 
 5. Deactivate the virtual env (step 7 in `Setup`)
