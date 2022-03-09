@@ -1,7 +1,10 @@
+"""Module for scraping VT court calendar pages."""
+
 import re
 import requests
-from bs4 import BeautifulSoup
 from datetime import datetime, date
+
+from bs4 import BeautifulSoup
 
 
 def parse_event_block(case_text: str, date: datetime) -> dict:
