@@ -22,7 +22,7 @@ source env/bin/activate
 ```
 4. Install packages inside the virtual environment:
 ```
-pip install -r requirements.txt
+pip install .
 ```
 5. Create a `.env` file to define config variables that will be used:
 ```
