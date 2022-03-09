@@ -1,8 +1,9 @@
 """Module for scraping VT court calendar pages."""
 
 import re
+import logging
 import requests
-from datetime import datetime, date
+from datetime import datetime
 
 from bs4 import BeautifulSoup
 
@@ -84,7 +85,7 @@ def parse_courtroom_from_day(courtroom_text: str, date: datetime) -> list:
     Returns:
         list: list of event dicts that parse_event_block returns
     """
-    judge = courtroom_text.splitlines()[0].rstrip()[1:]
+    judge = courtroom_text.splitlines()[0].rstrip()[1:]  # TODO add this
     week_fit_len = 11
     weekday = date.strftime("%A,")
     weekday_whitespace = ' ' * (week_fit_len - len(weekday))
