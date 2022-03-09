@@ -19,11 +19,7 @@ def parse_event_block(case_text: str, date: datetime) -> dict:
             subdivision: "criminal",
             court_room: "courtroom 1",
             hearing_type: "bench trial",
-            day_of_week: "monday",
-            day: "19",
-            month: "february",
-            time: "10:30",
-            am_pm: "AM"
+            date: isoformat datetime
         }
     """
     splits = case_text.lower().splitlines()
@@ -207,6 +203,7 @@ def parse_all(calendar_root_url: str) -> list:
     Returns:
         list: list of event blocks dicts from parse_event_block
     """
+    # TODO: need to add county back into the court events dict, should be quick as the below variable is all flat
     logging.info("Beginning to collect court calendar urls.")
     landing_page = requests.get(calendar_root_url)
     if not landing_page.ok:
