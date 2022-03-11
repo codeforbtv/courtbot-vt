@@ -1,4 +1,4 @@
-"""Module for scraping VT court calendar pages."""
+"""Module for parsing event information from Vermont Judiciary block text html calendars and writing event info to a csv."""
 
 import re
 import logging
