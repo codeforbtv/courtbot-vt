@@ -122,11 +122,11 @@ def parse_event_block(case_text: str, date: datetime) -> dict:
 
     full_date = datetime(date.year, date.month, date.day, hour, minute)
     return {
-            'docket': dockets,
-            'subdivision': subdivision,
-            'court_room': court_room,
-            'hearing_type': hearing_type,
-            'date': full_date.isoformat()
+        'docket': dockets,
+        'subdivision': subdivision,
+        'court_room': court_room,
+        'hearing_type': hearing_type.strip(),
+        'date': full_date.isoformat()
     }
 
 
@@ -152,7 +152,7 @@ def parse_courtroom_from_day(courtroom_text: str, date: datetime) -> list:
 
     event_blocks = []
     for case_text in cases_text:
-        event_blocks += parse_event_block(case_text, date)
+        event_blocks.append(parse_event_block(case_text, date))
 
     return event_blocks
 
@@ -205,6 +205,28 @@ def parse_date(day_text: str) -> datetime:
     return date
 
 
+def parse_address(address_text: str) -> dict:
+    """Parse an address out of text
+
+    Args:
+        address_text (str): text containing the address
+
+    Returns:
+        dict: address dict
+    """
+    cleaner_address = address_text.split('Division')[2].strip().lower().splitlines()
+    street, city_state_zip = cleaner_address[0].split('&#183')
+    street = street.rstrip()
+    city = city_state_zip.split(',')[0].lstrip()
+    zip_code = city_state_zip.split()[-1]
+
+    return {
+        'street': street,
+        'city': city,
+        'zip_code': zip_code
+    }
+
+
 def parse_calendar(calendar_link: str) -> list:
     """Parse an entire calendar for a given court page.
 
@@ -220,23 +242,13 @@ def parse_calendar(calendar_link: str) -> list:
     cleaned_county_division = county_division[county_division.index('for'):].replace('for', '').replace('  ', ' ').lstrip()
     splits = cleaned_county_division.split()
     division = splits[-1]
-    county = cleaned_county_division.replace(division, '')
+    county = cleaned_county_division.replace(division, '').strip()
     logging.info(f'Parsing URL {calendar_link}. {county} county, {division} division.')
     cases_text = no_html[no_html.index('As of'):]
     days_text = cases_text.split('Cases Set for  ')[1:]
 
-    address = no_html.split('As of')[0]
-    cleaner_address = address.split('Division')[2].strip().lower().splitlines()
-    street, city_state_zip = cleaner_address[0].split('&#183')
-    street = street.rstrip()
-    city = city_state_zip.split(',')[0].lstrip()
-    zip_code = city_state_zip.split()[-1]
-
-    address = {
-        'street': street,
-        'city': city,
-        'zip_code': zip_code
-    }
+    address_text = no_html.split('As of')[0]
+    address = parse_address(address_text)
 
     event_blocks = []
     for day_text in days_text:
