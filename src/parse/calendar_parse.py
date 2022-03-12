@@ -5,7 +5,11 @@ import logging
 import requests
 from datetime import datetime
 
+import pytz
 from bs4 import BeautifulSoup
+
+
+VT_TIMEZONE = pytz.timezone("US/Eastern")
 
 
 def parse_hearing_time(clean_time: str) -> int:
@@ -120,7 +124,7 @@ def parse_event_block(case_text: str, date: datetime) -> dict:
     except ValueError:  # case not covered in above to cases (most hearings are covered above)
         dockets, subdivision, court_room, hearing_type, hour, minute = parse_special(cleaner_splits)
 
-    full_date = datetime(date.year, date.month, date.day, hour, minute)
+    full_date = VT_TIMEZONE.localize(datetime(date.year, date.month, date.day, hour, minute))
     return {
         'docket': dockets,
         'subdivision': subdivision,
