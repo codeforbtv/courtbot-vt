@@ -8,6 +8,7 @@ python3 main.py
 import src.parse.calendar_parse as parser
 import src.github_database.write_events as event_writer
 import src.mongo.write_to_mongo as write_mongo
+import pandas as pd
 from dotenv import load_dotenv
 import os
 import logging
@@ -33,7 +34,7 @@ def main():
     """
 
     logging.info("Parsing all court calendars found at " + CALENDAR_ROOT_URL)
-    events_csv, all_court_events = parser.parse_all(CALENDAR_ROOT_URL, WRITE_DIR)
+    all_court_events = parser.parse_all(CALENDAR_ROOT_URL)
     logging.info("Finished parsing all court calendars")
 
     logging.info("Writing court events to mongo")
@@ -41,8 +42,10 @@ def main():
     logging.info("Finished writing court events to mongo")
 
     if WRITE_TO_GIT_REPO:
+        df = pd.DataFrame(all_court_events)
+        df.to_csv('court_events.csv')
         logging.info("Writing json files for parsed court events")
-        event_writer.write_events(events_csv, ".", LOCAL_CALENDAR_REPO_PATH)
+        event_writer.write_events('court_events.csv', ".", LOCAL_CALENDAR_REPO_PATH)
         event_writer.commit_push(LOCAL_CALENDAR_REPO_PATH, "." + "/", "Adding newest court event json files")
         logging.info("Finished writing json files for parsed court events")
 
