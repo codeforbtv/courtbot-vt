@@ -112,9 +112,10 @@ def parse_day(day_text: str, date: datetime) -> list:
     Returns:
         list: list of event dicts that parse_event_block returns
     """
+    event_blocks = []
     splits = day_text.split('Cases heard by')[1:]
     for split in splits:
-        event_blocks = parse_courtroom_from_day(split, date)
+        event_blocks += parse_courtroom_from_day(split, date)
 
     return event_blocks
 
