@@ -23,8 +23,9 @@ def parse_hearing_time(clean_time: str) -> int:
     """
     time_splits = clean_time[:-3].split(':')
     hour = int(time_splits[0])
-    if clean_time.endswith('pm'):
-        hour += 12  # 24 hr time here...
+    if clean_time.endswith('pm') and hour != 12:
+        if hour != 24:
+            hour += 12  # 24 hr time here...
     minute = int(time_splits[1])
 
     return hour, minute
@@ -123,7 +124,6 @@ def parse_event_block(case_text: str, date: datetime) -> dict:
 
     except ValueError:  # case not covered in above to cases (most hearings are covered above)
         dockets, subdivision, court_room, hearing_type, hour, minute = parse_special(cleaner_splits)
-
     full_date = VT_TIMEZONE.localize(datetime(date.year, date.month, date.day, hour, minute))
     return {
         'docket': dockets,
@@ -156,7 +156,8 @@ def parse_courtroom_from_day(courtroom_text: str, date: datetime) -> list:
 
     event_blocks = []
     for case_text in cases_text:
-        event_blocks.append(parse_event_block(case_text, date))
+        event = parse_event_block(case_text, date)
+        event_blocks.append(event)
 
     return event_blocks
 
@@ -319,8 +320,12 @@ def parse_all(calendar_root_url: str) -> list:
         if court_url in skip_this:
             logging.info(f'Skipping URL {court_url}. No current path forward to prase.')
             continue
+        print(court_url)
         all_court_events += parse_calendar(court_url)
 
     cleaned_events = [event for event in all_court_events if event['docket'] != '']
 
     return cleaned_events
+
+
+parse_all('https://www.vermontjudiciary.org/court-calendars')
