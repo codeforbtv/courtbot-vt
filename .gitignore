@@ -140,3 +140,4 @@ src/mongo/mongo_credentials.py
 
 # data directore where we write the csv file
 /data
+/tmp
