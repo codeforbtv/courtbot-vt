@@ -38,6 +38,63 @@ def updateOperation(event):
     """
     return UpdateOne({ "_id": event["_id"] }, { "$set": event }, upsert=True)
 
+def read_file_to_panda(path):
+    return pd.read_excel(path, header=None)
+
+
+def get_uid(event):
+    return f"{event['county']['code']}-{event['division']}-{event['docket_number']}-{event['litigant']['entity_id']}-{event['litigant']['role']['code']}"
+
+def csv_to_event(row):
+    event = {
+        "date": datetime.strptime(f"{row[2]} {row[5]}", '%m/%d/%Y %H:%M').replace(tzinfo=dateutil.tz.gettz('America/New_York')),
+        "county": {
+            "code": row[1],
+            "name": row[24],
+        },
+        "division": row[3],
+        "judge": {
+            "code": row[4],
+            "name": row[28],
+        },
+        "court_room_code": row[7],
+        "hearing": {
+            "date": row[2],
+            "start_time": row[5],
+            "type_code": row[8],
+            "type": row[25],
+        },
+        "doc_id": row[9],
+        "docket_number": row[10],
+        "case": {
+            "name": row[11],
+            "status": row[27],
+            "type": row[26],
+        },
+        "litigant": {
+            "entity_id": row[12],
+            "last_name": row[13],
+            "first_name": row[14],
+            "full_name": row[15],
+            "role": {
+                "code": row[16],
+                "rank": row[17],
+                "description": row[29],
+            },
+            "number": row[18],
+        },
+        "attorney": {
+            "entity_id": row[19],
+            "last_name": row[20],
+            "first_name": row[21],
+            "suffix": row[22],
+            "full_name": row[23],
+        },
+        "calendar_id": row[30],
+    }
+    event['_id'] = get_uid(event)
+    return event
+
 def ftp():
     if MONGODB_URI is None:
         raise Exception("MONGODB_URI environment variable is not set")
@@ -69,60 +126,13 @@ def ftp():
 
             # read in xlsx as panda
             logging.info('reading excel file as panda')
-            df = pd.read_excel(f"./tmp/{latest_file}", header=None)
+            df = read_file_to_panda(f"./tmp/{latest_file}")
 
-            # panda to object
+            # panda to event object
             logging.info('converting panda to json objects')
             events = []
             for index, row in df.iterrows():
-                event = {
-                    "_id": f"{row[1]} {row[3]} {row[10]}",
-                    "date": datetime.strptime(f"{row[2]} {row[5]}", '%m/%d/%Y %H:%M').replace(tzinfo=dateutil.tz.gettz('America/New_York')),
-                    "county": {
-                        "code": row[1],
-                        "name": row[24],
-                    },
-                    "division": row[3],
-                    "judge": {
-                        "code": row[4],
-                        "name": row[28],
-                    },
-                    "court_room_code": row[7],
-                    "hearing": {
-                        "date": row[2],
-                        "start_time": row[5],
-                        "type_code": row[8],
-                        "type": row[25],
-                    },
-                    "doc_id": row[9],
-                    "docket_number": row[10],
-                    "case": {
-                        "name": row[11],
-                        "status": row[27],
-                        "type": row[26],
-                    },
-                    "litigant": {
-                        "entity_id": row[12],
-                        "last_name": row[13],
-                        "first_name": row[14],
-                        "full_name": row[15],
-                        "role": {
-                            "code": row[16],
-                            "rank": row[17],
-                            "description": row[29],
-                        },
-                        "number": row[18],
-                    },
-                    "attorney": {
-                        "entity_id": row[19],
-                        "last_name": row[20],
-                        "first_name": row[21],
-                        "suffix": row[22],
-                        "full_name": row[23],
-                    },
-                    "calendar_id": row[30],
-                }
-                events.append(event)
+                events.append(csv_to_event(row))
             logging.info(f'read in {len(events)} events')
 
             # write to mongo
@@ -140,5 +150,27 @@ def ftp():
         logging.error(e)
         exit(1)
 
+def unique(list1):
+    # initialize a null list
+    unique_list = []
+    # traverse for all elements
+    for x in list1:
+        # check if exists in unique_list or not
+        if x not in unique_list:
+            unique_list.append(x)
+        # else:
+        #     print(x)
+    return unique_list
+
 if __name__ == "__main__":
     ftp()
+
+    ### Debugging Code
+    # df = read_file_to_panda("./data/VermontJudiciaryCalendar-06032022.xlsx")
+    # df.to_csv ("./data/VermontJudiciaryCalendar-06032022.csv", index = None)
+    # ids = []
+    # for index, row in df.iterrows():
+    #     event = csv_to_event(row)
+    #     ids.append(event['_id'])
+    # logging.info(f'number of ids: {len(ids)}')
+    # logging.info(f'unique number of ids: {len(unique(ids))}')
