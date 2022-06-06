@@ -157,7 +157,7 @@ def ftp():
                 logging.info('removing ftp files')
                 for file in files:
                     logging.info(f"removing {file}")
-                #     sftp.remove(file)
+                    sftp.remove(file)
     except Exception as e:
         logging.error(e)
         exit(1)
