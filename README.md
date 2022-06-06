@@ -60,7 +60,7 @@ pytest
 2. Activate the virtual env (step 3 in `Setup`). 
 3. Run main (parses court calendars and writes docket specific json files to the court-calendar repo):
 ```
-python3 main.py (If that doesn't work try python main.py)
+python3 src/main.py (If that doesn't work try python src/main.py)
 ```
 4. If `WRITE_TO_GIT_REPO=true`, check results pushed to your development branch in the `court-calendars` repo. 
 5. Deactivate the virtual env (step 7 in `Setup`)
@@ -92,7 +92,7 @@ heroku addons:create scheduler:standard
 ```
 
 go to (heroku dashboard)[https://dashboard.heroku.com/] and create a job with the following command
-`python main.py`
+`python src/main.py`
 Set it to run at 4PM UTC which is 12PM EDT or 11AM EST.
 
 ## heroku deployment
