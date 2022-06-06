@@ -28,6 +28,7 @@ SFTP_USERNAME = os.getenv("SFTP_USERNAME", None)
 SFTP_PRIVATE_KEY = os.getenv("SFTP_PRIVATE_KEY", None)
 MONGODB_URI = os.getenv("MONGODB_URI")
 MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "events")
+CLEAR_FTP_SERVER = os.getenv("CLEAR_FTP_SERVER", "false").lower() == 'true'
 
 def updateOperation(event):
     """
@@ -116,12 +117,15 @@ def ftp():
             files = sftp.listdir()
 
             # assume the last file listed is the latest file
+            if (len(files) == 0):
+                logging.info("No new files found on ftp server")
+                exit(0)
             latest_file = files[-1]
 
             # create tmp directory if it doesn't exist
             if not os.path.exists('./tmp'):
                 os.makedirs('./tmp')
-            logging.info("downloading file from sftp server")
+            logging.info(f"downloading file from sftp server: {latest_file}")
             sftp.get(latest_file, f"./tmp/{latest_file}")
 
             # read in xlsx as panda
@@ -135,42 +139,40 @@ def ftp():
                 events.append(csv_to_event(row))
             logging.info(f'read in {len(events)} events')
 
+            # removing duplicate events
+            logging.info('removing duplicate events')
+            events_to_write = unique_events(events)
+            logging.info(f'number of unique events: {len(events_to_write)}')
+
             # write to mongo
             logging.info('writing to mongo')
             client = MongoClient(MONGODB_URI)
             db = client.courtbot
             mycol = db[MONGO_COLLECTION]
-            operations = list(map(updateOperation, events))
+            operations = list(map(updateOperation, events_to_write))
             mycol.bulk_write(operations)
 
             # remove all files
-            # for file in files:
-            #     sftp.remove(file)
+            if CLEAR_FTP_SERVER:
+                logging.info('removing ftp files')
+                for file in files:
+                    logging.info(f"removing {file}")
+                #     sftp.remove(file)
     except Exception as e:
         logging.error(e)
         exit(1)
 
-def unique(list1):
+def unique_events(events):
     # initialize a null list
-    unique_list = []
+    unique_ids = []
+    unique_events = []
     # traverse for all elements
-    for x in list1:
+    for o in events:
         # check if exists in unique_list or not
-        if x not in unique_list:
-            unique_list.append(x)
-        # else:
-        #     print(x)
-    return unique_list
+        if o['_id'] not in unique_ids:
+            unique_ids.append(o['_id'])
+            unique_events.append(o)
+    return unique_events
 
 if __name__ == "__main__":
     ftp()
-
-    ### Debugging Code
-    # df = read_file_to_panda("./data/VermontJudiciaryCalendar-06032022.xlsx")
-    # df.to_csv ("./data/VermontJudiciaryCalendar-06032022.csv", index = None)
-    # ids = []
-    # for index, row in df.iterrows():
-    #     event = csv_to_event(row)
-    #     ids.append(event['_id'])
-    # logging.info(f'number of ids: {len(ids)}')
-    # logging.info(f'unique number of ids: {len(unique(ids))}')
