@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 # load config from .env file if there is one
 load_dotenv()
 
-SFTP_HOST = os.getenv("SFTP_HOST", "gs.judiciary.vermont.gov")
+SFTP_HOST = os.getenv("SFTP_HOST", None)
 SFTP_PORT = int(os.getenv("SFTP_PORT", "22"))
 SFTP_USERNAME = os.getenv("SFTP_USERNAME", None)
 SFTP_PRIVATE_KEY = os.getenv("SFTP_PRIVATE_KEY", None)
@@ -99,6 +99,8 @@ def csv_to_event(row):
 def ftp():
     if MONGODB_URI is None:
         raise Exception("MONGODB_URI environment variable is not set")
+    if SFTP_HOST is None:
+        raise Exception("SFTP_HOST environment variable is not set")
 
     # get csv from ftp server
     try:
